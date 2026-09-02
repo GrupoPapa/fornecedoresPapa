@@ -1,0 +1,74 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /
+  # atras do nginx/proxy reverso
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: cadastro-fornecedores-produtos
+  datasource:
+    url: jdbc:oracle:thin:@${ORACLE_DSN:192.168.254.252:1521/WINT}
+    username: ${ORACLE_USER:PMC}
+    password: ${ORACLE_PASSWORD:P3M5C0W1NT}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: none          # as tabelas sao criadas pelo script database/01_schema.sql
+    properties:
+      hibernate:
+        timezone.default_storage: NORMALIZE
+        format_sql: true
+    open-in-view: false
+  jackson:
+    default-property-inclusion: non_null
+  servlet:
+    multipart:
+      max-file-size: 6MB
+      max-request-size: 12MB
+
+app:
+  jwt:
+    # Em producao defina a variavel de ambiente CFP_JWT_SECRET (minimo 32 caracteres)
+    secret: ${CFP_JWT_SECRET:troque-esta-chave-por-uma-com-no-minimo-32-caracteres!!}
+    expiracao-minutos: 480
+  cors:
+    origens: ${CFP_CORS_ORIGENS:http://localhost:5173}
+  erp:
+    # Tabela de fornecedores do WinThor lida em modo somente leitura.
+    # Se o usuario PMC precisar de schema, use por exemplo: DBA.PCFORNEC
+    tabela-fornecedor: ${CFP_ERP_TABELA_FORNECEDOR:PCFORNEC}
+    tabela-produto: ${CFP_ERP_TABELA_PRODUTO:PCPRODUT}
+    # departamento de piso e revestimento: quem tem produto nesse depto informa m2 no lugar de unidades
+    codepto-piso: ${CFP_ERP_CODEPTO_PISO:13}
+  fotos:
+    max-por-produto: ${CFP_FOTOS_MAX:5}
+    max-mb: ${CFP_FOTOS_MAX_MB:5}
+  validacao:
+    # true  = exige um GTIN real (confere o digito verificador do codigo de barras)
+    # false = aceita qualquer numero com 8, 12, 13 ou 14 digitos (util para testes)
+    gtin-digito-verificador: ${CFP_VALIDA_GTIN:true}
+
+logging:
+  level:
+    br.com.grupopapa.cfp: INFO
+    org.hibernate.SQL: WARN
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+# expoe apenas o health, para o healthcheck do Docker
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
