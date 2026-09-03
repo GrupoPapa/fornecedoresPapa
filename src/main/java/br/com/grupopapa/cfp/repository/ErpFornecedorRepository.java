@@ -1,5 +1,6 @@
 package br.com.grupopapa.cfp.repository;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -34,7 +35,7 @@ public class ErpFornecedorRepository {
     private final String tabelaProduto;
     private final int codeptoPiso;
 
-    public ErpFornecedorRepository(JdbcTemplate jdbcTemplate,
+    public ErpFornecedorRepository(@Qualifier("erpJdbcTemplate") JdbcTemplate jdbcTemplate,
                                    @Value("${app.erp.tabela-fornecedor:PCFORNEC}") String tabela,
                                    @Value("${app.erp.tabela-produto:PCPRODUT}") String tabelaProduto,
                                    @Value("${app.erp.codepto-piso:13}") int codeptoPiso) {

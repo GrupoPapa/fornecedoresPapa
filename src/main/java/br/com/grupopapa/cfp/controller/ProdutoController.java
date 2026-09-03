@@ -74,8 +74,10 @@ public class ProdutoController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public ProdutoResponse criar(@RequestBody @Valid ProdutoRequest request,
-                                 @RequestParam(required = false) Long fornecedorId) {
-        return ProdutoResponse.de(produtoService.criar(request, UsuarioLogado.obter(), fornecedorId));
+                                 @RequestParam(required = false) Long fornecedorId,
+                                 @RequestParam(required = false) Long pedidoId) {
+        return ProdutoResponse.de(
+                produtoService.criar(request, UsuarioLogado.obter(), fornecedorId, pedidoId));
     }
 
     @PutMapping("/{id}")

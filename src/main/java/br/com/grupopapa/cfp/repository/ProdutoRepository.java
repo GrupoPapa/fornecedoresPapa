@@ -61,6 +61,12 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
     List<Produto> listarParaExportacao(@Param("fornecedorId") Long fornecedorId,
                                        @Param("status") StatusProduto status);
 
+    List<Produto> findByPedidoIdOrderByCodigoAsc(Long pedidoId);
+
+    long countByPedidoId(Long pedidoId);
+
+    long countByPedidoIdAndStatus(Long pedidoId, StatusProduto status);
+
     long countByFornecedorIdAndStatus(Long fornecedorId, StatusProduto status);
 
     long countByStatus(StatusProduto status);

@@ -25,6 +25,24 @@ spring:
         timezone.default_storage: NORMALIZE
         format_sql: true
     open-in-view: false
+  mail:
+    host: ${CFP_MAIL_HOST:}
+    port: ${CFP_MAIL_PORT:587}
+    username: ${CFP_MAIL_USUARIO:}
+    password: ${CFP_MAIL_SENHA:}
+    properties:
+      mail:
+        smtp:
+          auth: ${CFP_MAIL_AUTH:true}
+          # porta 465 = SSL direto (ssl.enable=true, starttls=false)
+          # porta 587 = STARTTLS  (ssl.enable=false, starttls=true)
+          ssl:
+            enable: ${CFP_MAIL_SSL:false}
+          starttls:
+            enable: ${CFP_MAIL_STARTTLS:true}
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
   jackson:
     default-property-inclusion: non_null
   servlet:
@@ -46,9 +64,50 @@ app:
     tabela-produto: ${CFP_ERP_TABELA_PRODUTO:PCPRODUT}
     # departamento de piso e revestimento: quem tem produto nesse depto informa m2 no lugar de unidades
     codepto-piso: ${CFP_ERP_CODEPTO_PISO:13}
+    # listas usadas no complemento WinThor (somente leitura)
+    tabela-marca: ${CFP_ERP_TABELA_MARCA:PCMARCA}
+    tabela-departamento: ${CFP_ERP_TABELA_DEPTO:PCDEPTO}
+    tabela-secao: ${CFP_ERP_TABELA_SECAO:PCSECAO}
+    # matricula do WinThor usada para carimbar o cadastro vindo do portal (etapa 2)
+    matricula: ${CFP_ERP_MATRICULA:}
+    # bloqueia a aprovacao do pedido enquanto faltar o complemento WinThor de algum item
+    exigir-complemento: ${CFP_ERP_EXIGIR_COMPLEMENTO:true}
+    # true = sugere os campos do WinThor com o que o fornecedor preencheu.
+    # false (padrao) = bloco em branco, a analista digita tudo manualmente.
+    pre-preencher: ${CFP_ERP_PRE_PREENCHER:false}
+    # conexao com o WinThor (leitura e gravacao). Em branco = usa a mesma do portal.
+    datasource:
+      dsn: ${CFP_ERP_DSN:}
+      usuario: ${CFP_ERP_USER:}
+      senha: ${CFP_ERP_PASSWORD:}
+    integracao:
+      # false = nao grava nada no WinThor (apenas prepara os dados)
+      habilitada: ${CFP_ERP_INTEGRACAO:false}
+      # numero da rotina gravado na PCTABPR
+      rotina: ${CFP_ERP_ROTINA:203}
+      # filial usada na PCPRODUT
+      codfilial: ${CFP_ERP_CODFILIAL:1}
+  email:
+    # so envia quando habilitado E com CFP_MAIL_HOST preenchido
+    habilitado: ${CFP_MAIL_HABILITADO:false}
+    remetente: ${CFP_MAIL_REMETENTE:nao-responda@grupopapa.com}
+    nome-remetente: ${CFP_MAIL_NOME_REMETENTE:Portal do Fornecedor - Grupo Papa}
+    copia-para: ${CFP_MAIL_COPIA:}
+  portal:
+    url: ${CFP_PORTAL_URL:http://localhost:5173}
   fotos:
     max-por-produto: ${CFP_FOTOS_MAX:5}
     max-mb: ${CFP_FOTOS_MAX_MB:5}
+    # pasta em que o WinThor guarda as imagens dos produtos (\\192.168.254.252\winthor\FOTOS).
+    # A pasta e montada no container (ver docker-compose) e o caminho de DENTRO do
+    # container vai aqui. Em branco = nao copia nada, a foto fica so no banco.
+    winthor:
+      diretorio: ${CFP_FOTOS_WINTHOR_DIR:}
+      # false = leva apenas a foto principal (CODPROD.jpg), que e a que o WinThor usa
+      # true  = leva tambem as demais como CODPROD_2.jpg, CODPROD_3.jpg ...
+      copiar-todas: ${CFP_FOTOS_WINTHOR_TODAS:false}
+      # true = regrava por cima se ja existir um arquivo com o mesmo nome
+      sobrescrever: ${CFP_FOTOS_WINTHOR_SOBRESCREVER:true}
   validacao:
     # true  = exige um GTIN real (confere o digito verificador do codigo de barras)
     # false = aceita qualquer numero com 8, 12, 13 ou 14 digitos (util para testes)

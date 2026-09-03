@@ -19,6 +19,10 @@ public class Produto {
     @JoinColumn(name = "FORNECEDOR_ID")
     private Fornecedor fornecedor;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "PEDIDO_ID")
+    private Pedido pedido;
+
     @Column(name = "CODIGO", nullable = false, length = 30)
     private String codigo;
 
@@ -103,6 +107,8 @@ public class Produto {
     public void setId(Long id) { this.id = id; }
     public Fornecedor getFornecedor() { return fornecedor; }
     public void setFornecedor(Fornecedor fornecedor) { this.fornecedor = fornecedor; }
+    public Pedido getPedido() { return pedido; }
+    public void setPedido(Pedido pedido) { this.pedido = pedido; }
     public String getCodigo() { return codigo; }
     public void setCodigo(String codigo) { this.codigo = codigo; }
     public String getDescricao() { return descricao; }

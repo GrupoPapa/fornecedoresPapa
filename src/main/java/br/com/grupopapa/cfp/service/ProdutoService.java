@@ -29,12 +29,15 @@ public class ProdutoService {
     private final ProdutoFotoRepository fotoRepository;
     private final UsuarioRepository usuarioRepository;
     private final FornecedorService fornecedorService;
+    private final PedidoService pedidoService;
 
     public ProdutoService(ProdutoRepository produtoRepository,
                           ProdutoHistoricoRepository historicoRepository,
                           ProdutoFotoRepository fotoRepository,
                           UsuarioRepository usuarioRepository,
-                          FornecedorService fornecedorService) {
+                          FornecedorService fornecedorService,
+                          PedidoService pedidoService) {
+        this.pedidoService = pedidoService;
         this.produtoRepository = produtoRepository;
         this.historicoRepository = historicoRepository;
         this.fotoRepository = fotoRepository;
@@ -89,18 +92,33 @@ public class ProdutoService {
     // ------------------------------------------------------------------ escrita
 
     @Transactional
-    public Produto criar(ProdutoRequest request, UsuarioAutenticado logado, Long fornecedorIdInformado) {
-        Long fornecedorId = logado.isAdmin() ? fornecedorIdInformado : logado.getFornecedorId();
-        if (fornecedorId == null) {
-            throw new NegocioException("Informe o fornecedor do produto.");
+    public Produto criar(ProdutoRequest request, UsuarioAutenticado logado,
+                         Long fornecedorIdInformado, Long pedidoId) {
+        Pedido pedido = null;
+        Fornecedor fornecedor;
+
+        if (pedidoId != null) {
+            pedido = pedidoService.buscar(pedidoId, logado);
+            if (!pedido.isEditavelPeloFornecedor()) {
+                throw new NegocioException("O pedido " + pedido.getNumero()
+                        + " ja foi enviado e nao aceita novos produtos.");
+            }
+            fornecedor = pedido.getFornecedor();
+        } else {
+            Long fornecedorId = logado.isAdmin() ? fornecedorIdInformado : logado.getFornecedorId();
+            if (fornecedorId == null) {
+                throw new NegocioException("Informe o fornecedor do produto.");
+            }
+            fornecedor = fornecedorService.buscar(fornecedorId);
         }
-        Fornecedor fornecedor = fornecedorService.buscar(fornecedorId);
+
         if (!Boolean.TRUE.equals(fornecedor.getAtivo())) {
             throw new NegocioException("Fornecedor inativo.");
         }
 
         Produto produto = new Produto();
         produto.setFornecedor(fornecedor);
+        produto.setPedido(pedido);
         produto.setStatus(StatusProduto.RASCUNHO);
         validarRegras(request, fornecedor, null);
         aplicar(produto, request, fornecedor);
@@ -166,6 +184,23 @@ public class ProdutoService {
         Produto salvo = produtoRepository.save(produto);
         registrar(salvo, logado, aprovado ? "APROVACAO" : "REPROVACAO", null, null,
                 aprovado ? "APROVADO" : "REPROVADO: " + parecer);
+        return salvo;
+    }
+
+    /** Desfaz a ressalva marcada num item, devolvendo-o para a analise do pedido. */
+    @Transactional
+    public Produto retirarRessalva(Long id, UsuarioAutenticado logado) {
+        Produto produto = produtoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNaoEncontradoException("Produto nao encontrado."));
+        if (produto.getStatus() != StatusProduto.REPROVADO) {
+            throw new NegocioException("Este item nao esta com ressalva.");
+        }
+        produto.setStatus(StatusProduto.ENVIADO);
+        produto.setParecer(null);
+        produto.setDataAnalise(null);
+        produto.setUsuarioAnalise(null);
+        Produto salvo = produtoRepository.save(produto);
+        registrar(salvo, logado, "RESSALVA_RETIRADA", null, null, "ENVIADO");
         return salvo;
     }
 

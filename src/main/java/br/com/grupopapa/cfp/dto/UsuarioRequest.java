@@ -12,5 +12,7 @@ public record UsuarioRequest(
         @NotNull(message = "Informe o perfil") Perfil perfil,
         Long fornecedorId,
         @Size(min = 8, max = 60, message = "A senha deve ter no minimo 8 caracteres") String senhaProvisoria,
-        Boolean ativo) {
+        Boolean ativo,
+        /** Envia os dados de acesso para o e-mail informado (padrao: true). */
+        Boolean enviarEmail) {
 }

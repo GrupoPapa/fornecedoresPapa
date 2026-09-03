@@ -28,9 +28,15 @@ public class AdminProdutoController {
     }
 
     @PostMapping("/{id}/reprovar")
-    @Operation(summary = "Reprova o cadastro e devolve ao fornecedor para correcao")
+    @Operation(summary = "Marca ressalva no item (dentro de um pedido) ou reprova o cadastro avulso")
     public ProdutoResponse reprovar(@PathVariable Long id, @RequestBody @Valid AnaliseRequest request) {
         return ProdutoResponse.de(produtoService.analisar(id, false, request.parecer(), UsuarioLogado.obter()));
+    }
+
+    @PostMapping("/{id}/retirar-ressalva")
+    @Operation(summary = "Desfaz a ressalva do item e devolve para a analise do pedido")
+    public ProdutoResponse retirarRessalva(@PathVariable Long id) {
+        return ProdutoResponse.de(produtoService.retirarRessalva(id, UsuarioLogado.obter()));
     }
 
     @PostMapping("/{id}/reabrir")

@@ -6,6 +6,7 @@ import br.com.grupopapa.cfp.dto.SenhaGeradaResponse;
 import br.com.grupopapa.cfp.dto.UsuarioRequest;
 import br.com.grupopapa.cfp.dto.UsuarioResponse;
 import br.com.grupopapa.cfp.security.UsuarioLogado;
+import br.com.grupopapa.cfp.service.EmailService;
 import br.com.grupopapa.cfp.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -20,9 +21,11 @@ import org.springframework.web.bind.annotation.*;
 public class AdminUsuarioController {
 
     private final UsuarioService usuarioService;
+    private final EmailService emailService;
 
-    public AdminUsuarioController(UsuarioService usuarioService) {
+    public AdminUsuarioController(UsuarioService usuarioService, EmailService emailService) {
         this.usuarioService = usuarioService;
+        this.emailService = emailService;
     }
 
     @GetMapping
@@ -45,7 +48,7 @@ public class AdminUsuarioController {
     @Operation(summary = "Cria o acesso do fornecedor e devolve a senha provisoria (exibida uma unica vez)")
     public SenhaGeradaResponse criar(@RequestBody @Valid UsuarioRequest request) {
         UsuarioService.ResultadoCriacao r = usuarioService.criar(request);
-        return montarResposta(r);
+        return montarResposta(r, request.enviarEmail());
     }
 
     @PutMapping("/{id}")
@@ -59,14 +62,22 @@ public class AdminUsuarioController {
                                             @RequestBody(required = false) @Valid DefinirSenhaRequest request) {
         UsuarioService.ResultadoCriacao r =
                 usuarioService.definirSenha(id, request == null ? null : request.senha());
-        return montarResposta(r);
+        return montarResposta(r, request == null ? null : request.enviarEmail());
     }
 
-    private SenhaGeradaResponse montarResposta(UsuarioService.ResultadoCriacao r) {
+    private SenhaGeradaResponse montarResposta(UsuarioService.ResultadoCriacao r, Boolean enviarEmail) {
         Long codigo = r.usuario().getFornecedor() != null
                 ? r.usuario().getFornecedor().getCodFornecedorErp() : null;
+
+        Boolean enviado = null;
+        String aviso = null;
+        if (enviarEmail == null || enviarEmail) {
+            EmailService.Resultado envio = emailService.enviarAcesso(r.usuario(), r.senhaProvisoria());
+            enviado = envio.enviado();
+            aviso = envio.aviso();
+        }
         return new SenhaGeradaResponse(r.usuario().getId(), r.usuario().getEmail(),
-                codigo, r.senhaProvisoria());
+                codigo, r.senhaProvisoria(), enviado, aviso);
     }
 
     @PatchMapping("/{id}/situacao")
