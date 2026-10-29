@@ -271,7 +271,7 @@ public class ProdutoService {
             }
         } else {
             if (r.qtdEmbalagem() == null) {
-                throw new NegocioException("Informe a quantidade por embalagem.");
+                throw new NegocioException("Informe a quantidade por embalagem / caixa master.");
             }
             if (r.metroCaixa() != null && r.metroPallet() != null
                     && r.metroPallet().compareTo(r.metroCaixa()) < 0) {
@@ -280,7 +280,7 @@ public class ProdutoService {
         }
         if (r.codBarraCaixa() != null && !r.codBarraCaixa().isBlank()
                 && r.codBarraCaixa().trim().equals(ean)) {
-            throw new NegocioException("O codigo de barras da caixa deve ser diferente do codigo do produto.");
+            throw new NegocioException("O codigo de barras da caixa master (DUN) deve ser diferente do EAN do produto.");
         }
     }
 

@@ -133,6 +133,7 @@ public class ErpProdutoWriter {
                , SUGVENDA, PCOMEXT1, PCOMINT1, PCOMREP1
                , REVENDA, TEMREPOS, CESTABASICALEGIS, ACEITAVENDAFRACAO, ENVIAINFTECNICANFE
                , ENVIAECOMMERCE, USAWMS, TIPOCARGAPRODUTO, LOCALSEPARACAO, NATUREZAPRODUTO
+               , MODULO, RUA, NUMERO, APTO, QTTOTPAL
                , DTCADASTRO, DTULTALTER, DTULTALTCAD
                , CODFUNCCADASTRO, CODFUNCULTALTER, CODFUNCULTALTCAD)
             VALUES (
@@ -143,6 +144,8 @@ public class ErpProdutoWriter {
                , ?, ?, ?, ?
                , ?, ?, ?, ?, ?
                , ?, ?, ?, ?, ?
+               -- enderecamento padrao do cadastro pelo portal (a 203 nao aceita nulo)
+               , 1, 1, 1, 1, 1
                , TRUNC(SYSDATE), TRUNC(SYSDATE), TRUNC(SYSDATE)
                , ?, ?, ?)
             """;

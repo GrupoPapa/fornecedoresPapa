@@ -47,8 +47,8 @@ public record ProdutoRequest(
 
         // Fornecedor GERAL informa qtdEmbalagem; fornecedor de piso/revestimento informa m2Caixa.
         // A obrigatoriedade de cada um e verificada no ProdutoService, conforme o tipo do fornecedor.
-        @Min(value = 1, message = "Quantidade por embalagem deve ser maior que zero")
-        @Max(value = 999999999, message = "Quantidade por embalagem invalida")
+        @Min(value = 1, message = "Quantidade por embalagem / caixa master deve ser maior que zero")
+        @Max(value = 999999999, message = "Quantidade por embalagem / caixa master invalida")
         Integer qtdEmbalagem,
 
         @DecimalMin(value = "0.0001", message = "m2 por caixa deve ser maior que zero")

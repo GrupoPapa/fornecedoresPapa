@@ -69,12 +69,13 @@ app:
     tabela-departamento: ${CFP_ERP_TABELA_DEPTO:PCDEPTO}
     tabela-secao: ${CFP_ERP_TABELA_SECAO:PCSECAO}
     # matricula do WinThor usada para carimbar o cadastro vindo do portal (etapa 2)
-    matricula: ${CFP_ERP_MATRICULA:}
+    matricula: ${CFP_ERP_MATRICULA:9}
     # bloqueia a aprovacao do pedido enquanto faltar o complemento WinThor de algum item
     exigir-complemento: ${CFP_ERP_EXIGIR_COMPLEMENTO:true}
-    # true = sugere os campos do WinThor com o que o fornecedor preencheu.
-    # false (padrao) = bloco em branco, a analista digita tudo manualmente.
-    pre-preencher: ${CFP_ERP_PRE_PREENCHER:false}
+    # true (padrao) = ja traz os campos do WinThor preenchidos com o que o fornecedor
+    # enviou e com os padroes da casa; a analista confere e ajusta o que precisar.
+    # false = bloco em branco, tudo digitado na mao.
+    pre-preencher: ${CFP_ERP_PRE_PREENCHER:true}
     # conexao com o WinThor (leitura e gravacao). Em branco = usa a mesma do portal.
     datasource:
       dsn: ${CFP_ERP_DSN:}
@@ -86,7 +87,31 @@ app:
       # numero da rotina gravado na PCTABPR
       rotina: ${CFP_ERP_ROTINA:203}
       # filial usada na PCPRODUT
-      codfilial: ${CFP_ERP_CODFILIAL:1}
+      # PCPRODUT.CODFILIAL - 99 = produto valido para todas as filiais (padrao do WinThor)
+      codfilial: ${CFP_ERP_CODFILIAL:99}
+    # pedido de compra digitado pelo fornecedor -> sugestao para a rotina 220
+    compra:
+      # false (padrao) = aprova no portal, mas nao grava a sugestao no WinThor
+      gerar-sugestao: ${CFP_ERP_SUGESTAO:true}
+      # filiais que podem receber pedido (ex.: 1,2,6). Em branco = todas da PCFILIAL
+      filiais: ${CFP_ERP_COMPRA_FILIAIS:}
+      tabela-sugestao: ${CFP_ERP_TABELA_SUGESTAO:PCSUGESTAOCOMPRAC}
+      tabela-sugestao-item: ${CFP_ERP_TABELA_SUGESTAO_ITEM:PCSUGESTAOCOMPRAI}
+      # sequence do NUMSUGESTAO. Em branco = trava a tabela e usa MAX(NUMSUGESTAO) + 1.
+      # NAO use DFSEQ_PCSUGESTAOCOMPRAC: ela esta em 3 e a tabela ja passa de 2.100.
+      sequence-sugestao: ${CFP_ERP_SEQ_SUGESTAO:}
+      # PCSUGESTAOCOMPRAI.STATUS do item gravado. P = pendente, como nascem as sugestoes
+      # ainda nao processadas na base (a 220 troca para F ao gerar o pedido)
+      status-item: ${CFP_ERP_SUGESTAO_STATUS_ITEM:P}
+      # true = grava a quantidade tambem em QTPEDIDO. Na base, o pendente nasce com QTPEDIDO nulo
+      preencher-qtpedido: ${CFP_ERP_SUGESTAO_QTPEDIDO:false}
+      # TIPOEMBALAGEMPEDIDO - todas as sugestoes da base usam V. Em branco = padrao do fornecedor
+      tipo-embalagem: ${CFP_ERP_SUGESTAO_TIPO_EMBALAGEM:V}
+      # comparativo de precos: ultimas entradas (PCMOV, CODOPER = 'E')
+      tabela-movimento: ${CFP_ERP_TABELA_MOVIMENTO:PCMOV}
+      qtd-historico-precos: ${CFP_ERP_QTD_HISTORICO_PRECOS:5}
+      # destaca o item quando o preco passa X% acima/abaixo da ultima compra
+      alerta-percentual: ${CFP_ERP_ALERTA_PERCENTUAL:10}
   email:
     # so envia quando habilitado E com CFP_MAIL_HOST preenchido
     habilitado: ${CFP_MAIL_HABILITADO:false}

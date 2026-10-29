@@ -18,9 +18,9 @@ public class ExportacaoService {
 
     private static final String[] CABECALHO = {
             "Fornecedor", "CNPJ", "Tipo fornecedor", "Codigo", "Descricao Fornecedor (Produto)",
-            "Cod. barra caixa", "Cod. barra produto", "Classificacao Fiscal (NCM)",
+            "Cod. barra caixa MASTER (DUN)", "Cod. barra produto (EAN)", "Classificacao Fiscal (NCM)",
             "Peso liquido (kg ou kg/m2)", "Peso bruto (kg ou kg/m2)",
-            "Metro Quadrado Caixa", "Metro Quadrado Pallet", "Qtd. Embalagem", "m2/Caixa", "m2/Pallet",
+            "Metro Quadrado Caixa", "Metro Quadrado Pallet", "Qtd. embalagem / caixa MASTER", "m2/Caixa", "m2/Pallet",
             "Status", "Data de envio"
     };
 

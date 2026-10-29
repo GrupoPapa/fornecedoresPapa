@@ -26,7 +26,7 @@ public class ProdutoErpService {
                              ProdutoService produtoService,
                              UsuarioRepository usuarioRepository,
                              @Value("${app.erp.exigir-complemento:true}") boolean exigirComplemento,
-                             @Value("${app.erp.pre-preencher:false}") boolean prePreencher) {
+                             @Value("${app.erp.pre-preencher:true}") boolean prePreencher) {
         this.repository = repository;
         this.produtoService = produtoService;
         this.usuarioRepository = usuarioRepository;
@@ -39,9 +39,9 @@ public class ProdutoErpService {
     }
 
     /**
-     * Devolve o complemento ja salvo. Se ainda nao existir, devolve um bloco em branco
-     * para a analista preencher manualmente (comportamento atual) ou, se
-     * app.erp.pre-preencher = true, uma sugestao montada com o que o fornecedor informou.
+     * Devolve o complemento ja salvo. Se ainda nao existir, monta uma sugestao com o que
+     * o fornecedor enviou e com os padroes da casa (app.erp.pre-preencher = true, padrao).
+     * Com a chave em false, devolve o bloco em branco para digitacao manual.
      */
     @Transactional(readOnly = true)
     public Resultado buscar(Long produtoId, UsuarioAutenticado logado) {
