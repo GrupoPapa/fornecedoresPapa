@@ -31,6 +31,10 @@ public class Fornecedor {
     @Column(name = "COD_FORNEC_ERP")
     private Long codFornecedorErp;
 
+    /** Filial de compra definida pelo administrador: o pedido de compra ja vem com ela, travada. */
+    @Column(name = "COD_FILIAL_COMPRA", length = 2)
+    private String codFilialCompra;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "TIPO", nullable = false, length = 20)
     private TipoFornecedor tipo = TipoFornecedor.GERAL;
@@ -68,6 +72,8 @@ public class Fornecedor {
     public void setTelefone(String telefone) { this.telefone = telefone; }
     public Long getCodFornecedorErp() { return codFornecedorErp; }
     public void setCodFornecedorErp(Long codFornecedorErp) { this.codFornecedorErp = codFornecedorErp; }
+    public String getCodFilialCompra() { return codFilialCompra; }
+    public void setCodFilialCompra(String codFilialCompra) { this.codFilialCompra = codFilialCompra; }
     public TipoFornecedor getTipo() { return tipo == null ? TipoFornecedor.GERAL : tipo; }
     public void setTipo(TipoFornecedor tipo) { this.tipo = tipo; }
     public Boolean getAtivo() { return ativo; }

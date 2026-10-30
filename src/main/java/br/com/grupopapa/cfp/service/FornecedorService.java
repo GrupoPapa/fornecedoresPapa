@@ -71,6 +71,8 @@ public class FornecedorService {
         f.setCodFornecedorErp(r.codFornecedorErp());
         f.setTipo(r.tipo() == null ? TipoFornecedor.GERAL : r.tipo());
         f.setAtivo(r.ativo() == null || r.ativo());
+        f.setCodFilialCompra(r.codFilialCompra() == null || r.codFilialCompra().isBlank()
+                ? null : r.codFilialCompra().trim());
     }
 
     private String normalizarTermo(String termo) {

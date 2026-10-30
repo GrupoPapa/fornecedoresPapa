@@ -15,6 +15,7 @@ public record PedidoCompraResponse(
         Long codFornecErp,
         StatusPedidoCompra status,
         String codFilial,
+        boolean filialFixa,
         TipoPedidoCompra tipo,
         LocalDate dataPrevisaoEntrega,
         String observacao,
@@ -60,7 +61,7 @@ public record PedidoCompraResponse(
         Fornecedor f = p.getFornecedor();
         return new PedidoCompraResponse(
                 p.getId(), p.getNumero(), f.getId(), f.getRazaoSocial(), f.getCodFornecedorErp(),
-                p.getStatus(), p.getCodFilial(), p.getTipo(), p.getDataPrevisaoEntrega(),
+                p.getStatus(), p.getCodFilial(), f.getCodFilialCompra() != null, p.getTipo(), p.getDataPrevisaoEntrega(),
                 p.getObservacao(), p.getParecer(), p.getValorTotal(), qtd,
                 p.isEditavelPeloFornecedor(), p.getDataCriacao(), p.getDataEnvio(), p.getDataAnalise(),
                 p.getNumSugestaoErp(), p.getStatusIntegracao(), p.getMensagemErro(), p.getDataIntegracao(),

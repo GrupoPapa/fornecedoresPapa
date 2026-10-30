@@ -11,7 +11,9 @@ public enum StatusPedidoCompra {
     DIVERGENCIA,
     /** Fiscal analisando o comparativo com os ultimos precos. */
     EM_ANALISE,
-    /** Devolvido ao fornecedor para reavaliacao. */
+    /** Devolvido ao fornecedor para revisao: ele corrige e reenvia. */
+    REVISAO,
+    /** Reprovado pelo fiscal - encerrado, nao volta para o fornecedor. */
     REPROVADO,
     /** Aprovado pelo fiscal; gera a sugestao para a rotina 220. */
     APROVADO,
@@ -19,7 +21,7 @@ public enum StatusPedidoCompra {
     CANCELADO;
 
     public boolean isEditavelPeloFornecedor() {
-        return this == RASCUNHO || this == REPROVADO;
+        return this == RASCUNHO || this == REVISAO;
     }
 
     public boolean isEmAnalise() {

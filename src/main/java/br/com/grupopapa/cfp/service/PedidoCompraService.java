@@ -133,7 +133,7 @@ public class PedidoCompraService {
             produtos.add(new CatalogoCompraResponse.Produto("PORTAL", null, p.getId(), p.getStatus(),
                     p.getCodigo(), p.getDescricao(), null, null, null, p.getCodBarraProduto()));
         }
-        return new CatalogoCompraResponse(produtos, aviso);
+        return new CatalogoCompraResponse(produtos, aviso, fornecedor.getCodFilialCompra());
     }
 
     // ================================================================ fornecedor
@@ -201,7 +201,7 @@ public class PedidoCompraService {
             throw new NegocioException("A previsao de entrega nao pode ser uma data passada.");
         }
 
-        boolean reenvio = pedido.getStatus() == StatusPedidoCompra.REPROVADO;
+        boolean reenvio = pedido.getStatus() == StatusPedidoCompra.REVISAO;
         Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
         List<String> divergencias = verificarDivergencias(pedido);
 
@@ -210,7 +210,7 @@ public class PedidoCompraService {
         repository.save(pedido);
 
         registrar(pedido.getId(), usuario, reenvio ? "REENVIO" : "ENVIO",
-                (reenvio ? "Reenviado apos reavaliacao. " : "Enviado para o fiscal. ")
+                (reenvio ? "Reenviado apos revisao. " : "Enviado para o fiscal. ")
                 + pedido.getItens().size() + " item(ns), total R$ " + pedido.getValorTotal() + ".");
         if (!divergencias.isEmpty()) {
             registrar(pedido.getId(), null, "DIVERGENCIA",
@@ -224,6 +224,7 @@ public class PedidoCompraService {
         PedidoCompra pedido = buscar(id, logado);
         boolean podeCancelar = logado.isAdmin()
                 ? pedido.getStatus() != StatusPedidoCompra.APROVADO && pedido.getStatus() != StatusPedidoCompra.CANCELADO
+                  && pedido.getStatus() != StatusPedidoCompra.REPROVADO
                 : pedido.isEditavelPeloFornecedor();
         if (!podeCancelar) {
             throw new NegocioException("O pedido " + pedido.getNumero() + " nao pode ser cancelado ("
@@ -282,22 +283,37 @@ public class PedidoCompraService {
         return repository.save(pedido);
     }
 
+    /** Revisar: devolve ao fornecedor com o motivo; ele corrige e reenvia. */
+    @Transactional
+    public PedidoCompra revisar(Long id, String parecer, UsuarioAutenticado logado) {
+        return encerrarAnalise(id, parecer, logado, StatusPedidoCompra.REVISAO, "REVISAO",
+                "Informe o que o fornecedor precisa corrigir.", "Devolvido para revisao: ");
+    }
+
+    /** Reprovar: encerra o pedido. O fornecedor ve o motivo, mas nao pode mais altera-lo. */
     @Transactional
     public PedidoCompra reprovar(Long id, String parecer, UsuarioAutenticado logado) {
+        return encerrarAnalise(id, parecer, logado, StatusPedidoCompra.REPROVADO, "REPROVACAO",
+                "Informe o motivo da reprovacao.", "Reprovado: ");
+    }
+
+    private PedidoCompra encerrarAnalise(Long id, String parecer, UsuarioAutenticado logado,
+                                         StatusPedidoCompra destino, String evento,
+                                         String exigirMotivo, String prefixo) {
         PedidoCompra pedido = buscar(id, logado);
         if (!pedido.getStatus().isEmAnalise()) {
-            throw new NegocioException("Somente pedidos em analise podem ser devolvidos.");
+            throw new NegocioException("Somente pedidos em analise podem ser revisados ou reprovados.");
         }
         if (parecer == null || parecer.isBlank()) {
-            throw new NegocioException("Informe o motivo para o fornecedor reavaliar o pedido.");
+            throw new NegocioException(exigirMotivo);
         }
         Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
-        pedido.setStatus(StatusPedidoCompra.REPROVADO);
+        pedido.setStatus(destino);
         pedido.setParecer(cortar(parecer.trim(), 500));
         pedido.setDataAnalise(OffsetDateTime.now());
         pedido.setUsuarioAnalise(usuario);
         repository.save(pedido);
-        registrar(id, usuario, "REPROVACAO", "Devolvido ao fornecedor: " + parecer.trim());
+        registrar(id, usuario, evento, prefixo + parecer.trim());
         return pedido;
     }
 
@@ -460,8 +476,13 @@ public class PedidoCompraService {
     private void aplicar(PedidoCompra pedido, PedidoCompraRequest request) {
         Fornecedor fornecedor = pedido.getFornecedor();
 
-        pedido.setCodFilial(request.codFilial() == null || request.codFilial().isBlank()
-                ? null : validarFilial(request.codFilial().trim()));
+        if (fornecedor.getCodFilialCompra() != null) {
+            // filial de compra definida no cadastro do fornecedor: vem fixa, ele nao escolhe
+            pedido.setCodFilial(fornecedor.getCodFilialCompra());
+        } else {
+            pedido.setCodFilial(request.codFilial() == null || request.codFilial().isBlank()
+                    ? null : validarFilial(request.codFilial().trim()));
+        }
         pedido.setTipo(request.tipo() == null ? TipoPedidoCompra.NORMAL : request.tipo());
         if (request.dataPrevisaoEntrega() != null && request.dataPrevisaoEntrega().isBefore(LocalDate.now())) {
             throw new NegocioException("A previsao de entrega nao pode ser uma data passada.");
@@ -632,7 +653,8 @@ public class PedidoCompraService {
             case RASCUNHO -> "em digitacao";
             case DIVERGENCIA -> "com divergencia de cadastro em analise";
             case EM_ANALISE -> "em analise pelo fiscal";
-            case REPROVADO -> "devolvido para reavaliacao";
+            case REVISAO -> "devolvido para revisao";
+            case REPROVADO -> "reprovado";
             case APROVADO -> "aprovado";
             case CANCELADO -> "cancelado";
         };

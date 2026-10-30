@@ -62,8 +62,17 @@ public class AdminPedidoCompraController {
         return PedidoCompraResponse.completo(service.buscar(p.getId(), logado));
     }
 
+    @PostMapping("/{id}/revisar")
+    @Operation(summary = "Devolve ao fornecedor com o motivo, para ele corrigir e reenviar")
+    public PedidoCompraResponse revisar(@PathVariable Long id,
+                                        @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
+        UsuarioAutenticado logado = UsuarioLogado.obter();
+        service.revisar(id, request == null ? null : request.parecer(), logado);
+        return PedidoCompraResponse.completo(service.buscar(id, logado));
+    }
+
     @PostMapping("/{id}/reprovar")
-    @Operation(summary = "Devolve ao fornecedor para reavaliacao")
+    @Operation(summary = "Reprova e encerra o pedido")
     public PedidoCompraResponse reprovar(@PathVariable Long id,
                                          @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
