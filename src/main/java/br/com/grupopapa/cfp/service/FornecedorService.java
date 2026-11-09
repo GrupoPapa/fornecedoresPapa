@@ -73,6 +73,9 @@ public class FornecedorService {
         f.setAtivo(r.ativo() == null || r.ativo());
         f.setCodFilialCompra(r.codFilialCompra() == null || r.codFilialCompra().isBlank()
                 ? null : r.codFilialCompra().trim());
+        if (r.habilitaFar() != null) {
+            f.setHabilitaFar(r.habilitaFar());
+        }
     }
 
     private String normalizarTermo(String termo) {

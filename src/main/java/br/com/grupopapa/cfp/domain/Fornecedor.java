@@ -42,6 +42,10 @@ public class Fornecedor {
     @Column(name = "ATIVO", nullable = false)
     private Boolean ativo = Boolean.TRUE;
 
+    /** Libera o controle de avarias (FAR) para este fornecedor. */
+    @Column(name = "HABILITA_FAR", nullable = false)
+    private Boolean habilitaFar = Boolean.FALSE;
+
     @Column(name = "DT_CRIACAO", nullable = false, updatable = false)
     private OffsetDateTime dataCriacao;
 
@@ -78,6 +82,9 @@ public class Fornecedor {
     public void setTipo(TipoFornecedor tipo) { this.tipo = tipo; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public boolean isFarHabilitado() { return Boolean.TRUE.equals(habilitaFar); }
+    public Boolean getHabilitaFar() { return habilitaFar; }
+    public void setHabilitaFar(Boolean habilitaFar) { this.habilitaFar = habilitaFar; }
     public OffsetDateTime getDataCriacao() { return dataCriacao; }
     public OffsetDateTime getDataAtualizacao() { return dataAtualizacao; }
 }

@@ -16,5 +16,6 @@ public record FornecedorRequest(
         TipoFornecedor tipo,
         Boolean ativo,
         @Size(max = 2, message = "Filial com no maximo 2 caracteres")
-        @jakarta.validation.constraints.Pattern(regexp = "\\d{0,2}", message = "Filial invalida") String codFilialCompra) {
+        @jakarta.validation.constraints.Pattern(regexp = "\\d{0,2}", message = "Filial invalida") String codFilialCompra,
+        Boolean habilitaFar) {
 }

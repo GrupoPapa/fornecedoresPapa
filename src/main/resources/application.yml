@@ -133,6 +133,10 @@ app:
       copiar-todas: ${CFP_FOTOS_WINTHOR_TODAS:false}
       # true = regrava por cima se ja existir um arquivo com o mesmo nome
       sobrescrever: ${CFP_FOTOS_WINTHOR_SOBRESCREVER:true}
+  # FAR - controle de avarias (comprovante de pagamento e demais anexos)
+  far:
+    anexo-max-mb: ${CFP_FAR_ANEXO_MAX_MB:5}
+    max-anexos: ${CFP_FAR_MAX_ANEXOS:10}
   validacao:
     # true  = exige um GTIN real (confere o digito verificador do codigo de barras)
     # false = aceita qualquer numero com 8, 12, 13 ou 14 digitos (util para testes)
