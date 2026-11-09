@@ -231,6 +231,8 @@ public class FarService {
         far.setObsOcorrencia(texto(r.obsOcorrencia()));
         far.setDataAberturaFar(r.dataAberturaFar());
         far.setNumeroFar(texto(r.numeroFar()));
+        far.setNumeroNota(texto(r.numeroNota()));
+        far.setNumeroPedido(texto(r.numeroPedido()));
         far.setStatus(r.status());
         far.setStatusOutros(r.status() == StatusFar.OUTROS ? texto(r.statusOutros()) : null);
         far.setObsFarFornecedor(texto(r.obsFarFornecedor()));
@@ -474,6 +476,8 @@ public class FarService {
         m.put("Obs. ocorrencia", f.getObsOcorrencia());
         m.put("Data abertura FAR", f.getDataAberturaFar() == null ? null : f.getDataAberturaFar().format(DATA));
         m.put("N. FAR", f.getNumeroFar());
+        m.put("N. nota", f.getNumeroNota());
+        m.put("N. pedido", f.getNumeroPedido());
         m.put("Situacao", f.getStatus() == null ? null : rotuloStatus(f));
         m.put("Obs. FAR fornecedor", f.getObsFarFornecedor());
         m.put("Obs. FAR empresa", f.getObsFarEmpresa());

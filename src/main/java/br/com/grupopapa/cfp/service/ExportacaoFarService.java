@@ -21,7 +21,7 @@ public class ExportacaoFarService {
     private static final String[] CABECALHO = {
             "Fornecedor", "Cod. fornecedor WinThor",
             "Data visita", "Cod. produto", "Qtd produtos", "Motivo", "Obs. ocorrencia",
-            "Data abertura FAR", "N. FAR", "Status", "Obs. FAR fornecedor", "Obs. FAR empresa",
+            "Data abertura FAR", "N. FAR", "N. nota", "N. pedido", "Status", "Obs. FAR fornecedor", "Obs. FAR empresa",
             "Comprovante pagamento", "Vinculo baixa fiscal", "Referencia baixa fiscal", "Data vinculo", "Vinculado por"
     };
 
@@ -39,7 +39,7 @@ public class ExportacaoFarService {
                     f.getDataVisita() == null ? null : f.getDataVisita().format(DATA),
                     f.getCodigoProduto(), f.getQtdProdutos(), f.getMotivo().getDescricao(), f.getObsOcorrencia(),
                     f.getDataAberturaFar() == null ? null : f.getDataAberturaFar().format(DATA),
-                    f.getNumeroFar(), status, f.getObsFarFornecedor(), f.getObsFarEmpresa(),
+                    f.getNumeroFar(), f.getNumeroNota(), f.getNumeroPedido(), status, f.getObsFarFornecedor(), f.getObsFarEmpresa(),
                     qtdComprovantes > 0 ? "Sim" : (f.getStatus() == StatusFar.FINALIZADO_APROVADO ? "Pendente" : "Nao"),
                     Boolean.TRUE.equals(f.getBaixaFiscal()) ? "Sim" : "Nao",
                     f.getBaixaFiscalReferencia(),

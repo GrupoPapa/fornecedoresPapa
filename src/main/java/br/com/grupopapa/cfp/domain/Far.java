@@ -45,6 +45,12 @@ public class Far {
     @Column(name = "NUMERO_FAR", length = 30)
     private String numeroFar;
 
+    @Column(name = "NUMERO_NOTA", length = 30)
+    private String numeroNota;
+
+    @Column(name = "NUMERO_PEDIDO", length = 30)
+    private String numeroPedido;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "STATUS", nullable = false, length = 30)
     private StatusFar status = StatusFar.EM_ANALISE;
@@ -116,6 +122,10 @@ public class Far {
     public void setDataAberturaFar(LocalDate dataAberturaFar) { this.dataAberturaFar = dataAberturaFar; }
     public String getNumeroFar() { return numeroFar; }
     public void setNumeroFar(String numeroFar) { this.numeroFar = numeroFar; }
+    public String getNumeroNota() { return numeroNota; }
+    public void setNumeroNota(String numeroNota) { this.numeroNota = numeroNota; }
+    public String getNumeroPedido() { return numeroPedido; }
+    public void setNumeroPedido(String numeroPedido) { this.numeroPedido = numeroPedido; }
     public StatusFar getStatus() { return status; }
     public void setStatus(StatusFar status) { this.status = status; }
     public String getStatusOutros() { return statusOutros; }
