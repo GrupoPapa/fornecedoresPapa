@@ -64,6 +64,13 @@ public class FarController {
         return service.motivosAtivos(UsuarioLogado.obter()).stream().map(FarMotivoResponse::de).toList();
     }
 
+    @PostMapping("/motivos")
+    @ResponseStatus(HttpStatus.CREATED)
+    @Operation(summary = "Cadastra um motivo novo (fornecedor liberado ou admin)")
+    public FarMotivoResponse criarMotivo(@RequestBody @Valid FarMotivoRequest request) {
+        return FarMotivoResponse.de(service.criarMotivo(request, UsuarioLogado.obter()));
+    }
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Registra a FAR (parte 'dados' em JSON + comprovante opcional)")
@@ -145,10 +152,12 @@ public class FarController {
             @RequestParam(required = false) Long fornecedorId) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         List<Far> fars = service.listarParaExportacao(logado, fornecedorId, status, motivoId, baixaFiscal, dataDe, dataAte);
-        var comprovantes = service.comprovantesPorFar(fars.stream().map(Far::getId).toList());
+        List<Long> ids = fars.stream().map(Far::getId).toList();
+        var comprovantes = service.comprovantesPorFar(ids);
+        var itens = service.itensPorFar(ids);
         boolean csv = "csv".equalsIgnoreCase(formato);
-        byte[] conteudo = csv ? exportacaoService.gerarCsv(fars, comprovantes)
-                : exportacaoService.gerarExcel(fars, comprovantes);
+        byte[] conteudo = csv ? exportacaoService.gerarCsv(fars, itens, comprovantes)
+                : exportacaoService.gerarExcel(fars, itens, comprovantes);
         MediaType tipo = csv ? MediaType.parseMediaType("text/csv; charset=UTF-8")
                 : MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         return ResponseEntity.ok()

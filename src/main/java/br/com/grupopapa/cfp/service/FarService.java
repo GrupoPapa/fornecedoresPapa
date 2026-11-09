@@ -123,14 +123,29 @@ public class FarService {
     @Transactional(readOnly = true)
     public FarResponse resposta(Far far, UsuarioAutenticado logado) {
         long comprovantes = anexoRepository.countByFarIdAndTipo(far.getId(), TipoAnexoFar.COMPROVANTE_PAGAMENTO);
-        return FarResponse.de(far, comprovantes, podeEditar(far, logado), true);
+        return FarResponse.de(far, repository.itensDe(List.of(far.getId())), comprovantes, podeEditar(far, logado), true);
     }
 
     @Transactional(readOnly = true)
     public PaginaResponse<FarResponse> respostaPagina(Page<Far> page, UsuarioAutenticado logado) {
-        Map<Long, Long> comprovantes = comprovantesPorFar(page.getContent().stream().map(Far::getId).toList());
-        return PaginaResponse.de(page,
-                f -> FarResponse.de(f, comprovantes.getOrDefault(f.getId(), 0L), podeEditar(f, logado), false));
+        List<Long> ids = page.getContent().stream().map(Far::getId).toList();
+        Map<Long, Long> comprovantes = comprovantesPorFar(ids);
+        Map<Long, List<FarItem>> itens = itensPorFar(ids);
+        return PaginaResponse.de(page, f -> FarResponse.de(f, itens.getOrDefault(f.getId(), List.of()),
+                comprovantes.getOrDefault(f.getId(), 0L), podeEditar(f, logado), false));
+    }
+
+    /** Itens (com motivo) das FARs informadas, agrupados por FAR. */
+    @Transactional(readOnly = true)
+    public Map<Long, List<FarItem>> itensPorFar(Collection<Long> ids) {
+        Map<Long, List<FarItem>> mapa = new HashMap<>();
+        if (ids.isEmpty()) {
+            return mapa;
+        }
+        for (FarItem i : repository.itensDe(ids)) {
+            mapa.computeIfAbsent(i.getFar().getId(), k -> new ArrayList<>()).add(i);
+        }
+        return mapa;
     }
 
     @Transactional(readOnly = true)
@@ -215,18 +230,7 @@ public class FarService {
 
     private void aplicar(Far far, FarRequest r, UsuarioAutenticado logado, boolean novo) {
         far.setDataVisita(r.dataVisita());
-        far.setCodigoProduto(texto(r.codigoProduto()));
-        far.setQtdProdutos(r.qtdProdutos());
-
-        boolean motivoMudou = novo || far.getMotivo() == null || !Objects.equals(far.getMotivo().getId(), r.motivoId());
-        if (motivoMudou) {
-            FarMotivo motivo = motivoRepository.findById(r.motivoId())
-                    .orElseThrow(() -> new NegocioException("Motivo nao encontrado."));
-            if (!Boolean.TRUE.equals(motivo.getAtivo())) {
-                throw new NegocioException("O motivo \"" + motivo.getDescricao() + "\" nao esta mais disponivel.");
-            }
-            far.setMotivo(motivo);
-        }
+        aplicarItens(far, r.itens());
 
         far.setObsOcorrencia(texto(r.obsOcorrencia()));
         far.setDataAberturaFar(r.dataAberturaFar());
@@ -239,6 +243,44 @@ public class FarService {
         if (logado.isAdmin()) {
             far.setObsFarEmpresa(texto(r.obsFarEmpresa())); // observacao da empresa: so a equipe interna
         }
+    }
+
+    /** Substitui os produtos da FAR pelos do formulario e recalcula o total. */
+    private void aplicarItens(Far far, List<FarRequest.Item> itens) {
+        // motivo que foi inativado continua valendo para o item que ja o usava
+        Set<Long> motivosJaUsados = new HashSet<>();
+        far.getItens().forEach(i -> motivosJaUsados.add(i.getMotivo().getId()));
+
+        Map<Long, FarMotivo> motivos = new HashMap<>();
+        List<FarItem> novos = new ArrayList<>();
+        long total = 0;
+        int seq = 1;
+        for (FarRequest.Item ri : itens) {
+            FarMotivo motivo = motivos.get(ri.motivoId());
+            if (motivo == null) {
+                motivo = motivoRepository.findById(ri.motivoId())
+                        .orElseThrow(() -> new NegocioException("Motivo do produto " + ri.codigoProduto() + " nao encontrado."));
+                motivos.put(motivo.getId(), motivo);
+            }
+            if (!Boolean.TRUE.equals(motivo.getAtivo()) && !motivosJaUsados.contains(motivo.getId())) {
+                throw new NegocioException("O motivo \"" + motivo.getDescricao() + "\" nao esta mais disponivel.");
+            }
+            FarItem item = new FarItem();
+            item.setFar(far);
+            item.setSeq(seq++);
+            item.setCodigoProduto(ri.codigoProduto().trim());
+            item.setDescricaoProduto(texto(ri.descricaoProduto()));
+            item.setQuantidade(ri.quantidade());
+            item.setMotivo(motivo);
+            novos.add(item);
+            total += ri.quantidade();
+        }
+        if (total > 9_999_999L) {
+            throw new NegocioException("A quantidade total de produtos passa do permitido.");
+        }
+        far.getItens().clear();
+        far.getItens().addAll(novos);
+        far.setQtdProdutos((int) total);
     }
 
     private void validar(Far far, long comprovantes, Long ignorarId) {
@@ -432,6 +474,13 @@ public class FarService {
         return motivoRepository.findAllByOrderByDescricao();
     }
 
+    /** O fornecedor liberado tambem cadastra motivo novo, direto no formulario da FAR. */
+    @Transactional
+    public FarMotivo criarMotivo(FarMotivoRequest request, UsuarioAutenticado logado) {
+        verificarAcesso(logado);
+        return salvarMotivo(null, new FarMotivoRequest(request.descricao(), true));
+    }
+
     @Transactional
     public FarMotivo salvarMotivo(Long id, FarMotivoRequest request) {
         String descricao = request.descricao().trim();
@@ -454,8 +503,8 @@ public class FarService {
     private String resumo(Far f) {
         StringBuilder sb = new StringBuilder();
         sb.append("visita em ").append(f.getDataVisita().format(DATA))
-          .append(", produto ").append(f.getCodigoProduto())
-          .append(", ").append(f.getQtdProdutos()).append(" produto(s), motivo ").append(f.getMotivo().getDescricao())
+          .append(", produtos ").append(descreverItens(f))
+          .append(" - total ").append(f.getQtdProdutos())
           .append(", situacao ").append(rotuloStatus(f));
         if (f.getNumeroFar() != null) sb.append(", FAR ").append(f.getNumeroFar());
         return sb.toString();
@@ -470,9 +519,7 @@ public class FarService {
     private Map<String, String> retrato(Far f) {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("Data da visita", f.getDataVisita() == null ? null : f.getDataVisita().format(DATA));
-        m.put("Cod. produto", f.getCodigoProduto());
-        m.put("Qtd. produtos", f.getQtdProdutos() == null ? null : f.getQtdProdutos().toString());
-        m.put("Motivo", f.getMotivo() == null ? null : f.getMotivo().getDescricao());
+        m.put("Produtos", f.getItens().isEmpty() ? null : descreverItens(f));
         m.put("Obs. ocorrencia", f.getObsOcorrencia());
         m.put("Data abertura FAR", f.getDataAberturaFar() == null ? null : f.getDataAberturaFar().format(DATA));
         m.put("N. FAR", f.getNumeroFar());
@@ -482,6 +529,15 @@ public class FarService {
         m.put("Obs. FAR fornecedor", f.getObsFarFornecedor());
         m.put("Obs. FAR empresa", f.getObsFarEmpresa());
         return m;
+    }
+
+    /** Ex.: "102 x12 (Produto quebrado); 94 x5 (Embalagem danificada)". */
+    private String descreverItens(Far f) {
+        List<String> partes = new ArrayList<>();
+        for (FarItem i : f.getItens()) {
+            partes.add(i.getCodigoProduto() + " x" + i.getQuantidade() + " (" + i.getMotivo().getDescricao() + ")");
+        }
+        return String.join("; ", partes);
     }
 
     private String diferencas(Map<String, String> antes, Map<String, String> depois) {
@@ -498,7 +554,7 @@ public class FarService {
     }
 
     private String curto(String v) {
-        return v.length() > 150 ? v.substring(0, 150) + "..." : v;
+        return v.length() > 600 ? v.substring(0, 600) + "..." : v;
     }
 
     private String texto(String v) {

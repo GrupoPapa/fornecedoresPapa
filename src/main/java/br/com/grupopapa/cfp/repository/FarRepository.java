@@ -1,6 +1,7 @@
 package br.com.grupopapa.cfp.repository;
 
 import br.com.grupopapa.cfp.domain.Far;
+import br.com.grupopapa.cfp.domain.FarItem;
 import br.com.grupopapa.cfp.domain.StatusFar;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,50 +19,62 @@ public interface FarRepository extends JpaRepository<Far, Long> {
     @Query("""
            select f from Far f
            join fetch f.fornecedor
-           join fetch f.motivo
            left join fetch f.usuarioBaixa
            left join fetch f.usuarioCriacao
            where f.id = :id
            """)
     Optional<Far> buscarCompleto(@Param("id") Long id);
 
+    /** Itens das FARs informadas, com o motivo, na ordem da FAR. */
+    @Query("""
+           select i from FarItem i
+           join fetch i.motivo
+           where i.far.id in :ids
+           order by i.far.id, i.seq
+           """)
+    List<FarItem> itensDe(@Param("ids") Collection<Long> ids);
+
     @Query(value = """
            select f from Far f
            join fetch f.fornecedor fo
-           join fetch f.motivo m
            where (:fornecedorId is null or fo.id = :fornecedorId)
              and (:status is null or f.status = :status)
-             and (:motivoId is null or m.id = :motivoId)
+             and (:motivoId is null or exists (
+                  select 1 from FarItem im where im.far = f and im.motivo.id = :motivoId))
              and (:baixaFiscal is null or f.baixaFiscal = :baixaFiscal)
              and (:dataDe is null or f.dataVisita >= :dataDe)
              and (:dataAte is null or f.dataVisita <= :dataAte)
              and (:termo is null
                   or upper(f.numeroFar) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.obsOcorrencia, '')) like upper(concat('%', :termo, '%'))
-                  or upper(coalesce(f.codigoProduto, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.numeroNota, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.numeroPedido, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.baixaFiscalReferencia, '')) like upper(concat('%', :termo, '%'))
-                  or upper(fo.razaoSocial) like upper(concat('%', :termo, '%')))
+                  or upper(fo.razaoSocial) like upper(concat('%', :termo, '%'))
+                  or exists (select 1 from FarItem it where it.far = f
+                             and (upper(it.codigoProduto) like upper(concat('%', :termo, '%'))
+                                  or upper(coalesce(it.descricaoProduto, '')) like upper(concat('%', :termo, '%')))))
            """,
            countQuery = """
            select count(f) from Far f
            join f.fornecedor fo
-           join f.motivo m
            where (:fornecedorId is null or fo.id = :fornecedorId)
              and (:status is null or f.status = :status)
-             and (:motivoId is null or m.id = :motivoId)
+             and (:motivoId is null or exists (
+                  select 1 from FarItem im where im.far = f and im.motivo.id = :motivoId))
              and (:baixaFiscal is null or f.baixaFiscal = :baixaFiscal)
              and (:dataDe is null or f.dataVisita >= :dataDe)
              and (:dataAte is null or f.dataVisita <= :dataAte)
              and (:termo is null
                   or upper(f.numeroFar) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.obsOcorrencia, '')) like upper(concat('%', :termo, '%'))
-                  or upper(coalesce(f.codigoProduto, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.numeroNota, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.numeroPedido, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.baixaFiscalReferencia, '')) like upper(concat('%', :termo, '%'))
-                  or upper(fo.razaoSocial) like upper(concat('%', :termo, '%')))
+                  or upper(fo.razaoSocial) like upper(concat('%', :termo, '%'))
+                  or exists (select 1 from FarItem it where it.far = f
+                             and (upper(it.codigoProduto) like upper(concat('%', :termo, '%'))
+                                  or upper(coalesce(it.descricaoProduto, '')) like upper(concat('%', :termo, '%')))))
            """)
     Page<Far> pesquisar(@Param("fornecedorId") Long fornecedorId,
                         @Param("status") StatusFar status,
@@ -74,11 +88,11 @@ public interface FarRepository extends JpaRepository<Far, Long> {
     @Query("""
            select f from Far f
            join fetch f.fornecedor fo
-           join fetch f.motivo m
            left join fetch f.usuarioBaixa
            where (:fornecedorId is null or fo.id = :fornecedorId)
              and (:status is null or f.status = :status)
-             and (:motivoId is null or m.id = :motivoId)
+             and (:motivoId is null or exists (
+                  select 1 from FarItem im where im.far = f and im.motivo.id = :motivoId))
              and (:baixaFiscal is null or f.baixaFiscal = :baixaFiscal)
              and (:dataDe is null or f.dataVisita >= :dataDe)
              and (:dataAte is null or f.dataVisita <= :dataAte)

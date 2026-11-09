@@ -3,6 +3,8 @@ package br.com.grupopapa.cfp.domain;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * FAR - controle de avarias. Cada registro e uma linha da planilha de controle:
@@ -26,15 +28,13 @@ public class Far {
     @Column(name = "DT_VISITA", nullable = false)
     private LocalDate dataVisita;
 
-    @Column(name = "CODIGO_PRODUTO", length = 200)
-    private String codigoProduto;
-
+    /** Total de produtos avariados (soma das quantidades dos itens). */
     @Column(name = "QTD_PRODUTOS", nullable = false)
     private Integer qtdProdutos;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "MOTIVO_ID")
-    private FarMotivo motivo;
+    @OneToMany(mappedBy = "far", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("seq")
+    private List<FarItem> itens = new ArrayList<>();
 
     @Column(name = "OBS_OCORRENCIA", length = 1000)
     private String obsOcorrencia;
@@ -110,12 +110,9 @@ public class Far {
     public void setFornecedor(Fornecedor fornecedor) { this.fornecedor = fornecedor; }
     public LocalDate getDataVisita() { return dataVisita; }
     public void setDataVisita(LocalDate dataVisita) { this.dataVisita = dataVisita; }
-    public String getCodigoProduto() { return codigoProduto; }
-    public void setCodigoProduto(String codigoProduto) { this.codigoProduto = codigoProduto; }
     public Integer getQtdProdutos() { return qtdProdutos; }
     public void setQtdProdutos(Integer qtdProdutos) { this.qtdProdutos = qtdProdutos; }
-    public FarMotivo getMotivo() { return motivo; }
-    public void setMotivo(FarMotivo motivo) { this.motivo = motivo; }
+    public List<FarItem> getItens() { return itens; }
     public String getObsOcorrencia() { return obsOcorrencia; }
     public void setObsOcorrencia(String obsOcorrencia) { this.obsOcorrencia = obsOcorrencia; }
     public LocalDate getDataAberturaFar() { return dataAberturaFar; }
