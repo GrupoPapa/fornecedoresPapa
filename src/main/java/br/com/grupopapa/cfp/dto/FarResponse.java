@@ -9,7 +9,7 @@ import java.time.OffsetDateTime;
 public record FarResponse(
         Long id,
         Long fornecedorId, String fornecedorNome, Long codFornecedorErp,
-        LocalDate dataVisita, Integer qtdProdutos,
+        LocalDate dataVisita, String codigoProduto, Integer qtdProdutos,
         Long motivoId, String motivoDescricao,
         String obsOcorrencia,
         LocalDate dataAberturaFar, String numeroFar,
@@ -26,7 +26,7 @@ public record FarResponse(
         return new FarResponse(
                 f.getId(),
                 f.getFornecedor().getId(), f.getFornecedor().getRazaoSocial(), f.getFornecedor().getCodFornecedorErp(),
-                f.getDataVisita(), f.getQtdProdutos(),
+                f.getDataVisita(), f.getCodigoProduto(), f.getQtdProdutos(),
                 f.getMotivo().getId(), f.getMotivo().getDescricao(),
                 f.getObsOcorrencia(),
                 f.getDataAberturaFar(), f.getNumeroFar(),

@@ -215,6 +215,7 @@ public class FarService {
 
     private void aplicar(Far far, FarRequest r, UsuarioAutenticado logado, boolean novo) {
         far.setDataVisita(r.dataVisita());
+        far.setCodigoProduto(texto(r.codigoProduto()));
         far.setQtdProdutos(r.qtdProdutos());
 
         boolean motivoMudou = novo || far.getMotivo() == null || !Objects.equals(far.getMotivo().getId(), r.motivoId());
@@ -451,6 +452,7 @@ public class FarService {
     private String resumo(Far f) {
         StringBuilder sb = new StringBuilder();
         sb.append("visita em ").append(f.getDataVisita().format(DATA))
+          .append(", produto ").append(f.getCodigoProduto())
           .append(", ").append(f.getQtdProdutos()).append(" produto(s), motivo ").append(f.getMotivo().getDescricao())
           .append(", situacao ").append(rotuloStatus(f));
         if (f.getNumeroFar() != null) sb.append(", FAR ").append(f.getNumeroFar());
@@ -466,6 +468,7 @@ public class FarService {
     private Map<String, String> retrato(Far f) {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("Data da visita", f.getDataVisita() == null ? null : f.getDataVisita().format(DATA));
+        m.put("Cod. produto", f.getCodigoProduto());
         m.put("Qtd. produtos", f.getQtdProdutos() == null ? null : f.getQtdProdutos().toString());
         m.put("Motivo", f.getMotivo() == null ? null : f.getMotivo().getDescricao());
         m.put("Obs. ocorrencia", f.getObsOcorrencia());

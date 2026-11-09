@@ -37,6 +37,7 @@ public interface FarRepository extends JpaRepository<Far, Long> {
              and (:termo is null
                   or upper(f.numeroFar) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.obsOcorrencia, '')) like upper(concat('%', :termo, '%'))
+                  or upper(coalesce(f.codigoProduto, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.baixaFiscalReferencia, '')) like upper(concat('%', :termo, '%'))
                   or upper(fo.razaoSocial) like upper(concat('%', :termo, '%')))
            """,
@@ -53,6 +54,7 @@ public interface FarRepository extends JpaRepository<Far, Long> {
              and (:termo is null
                   or upper(f.numeroFar) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.obsOcorrencia, '')) like upper(concat('%', :termo, '%'))
+                  or upper(coalesce(f.codigoProduto, '')) like upper(concat('%', :termo, '%'))
                   or upper(coalesce(f.baixaFiscalReferencia, '')) like upper(concat('%', :termo, '%'))
                   or upper(fo.razaoSocial) like upper(concat('%', :termo, '%')))
            """)

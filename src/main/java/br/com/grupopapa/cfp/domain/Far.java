@@ -26,6 +26,9 @@ public class Far {
     @Column(name = "DT_VISITA", nullable = false)
     private LocalDate dataVisita;
 
+    @Column(name = "CODIGO_PRODUTO", length = 200)
+    private String codigoProduto;
+
     @Column(name = "QTD_PRODUTOS", nullable = false)
     private Integer qtdProdutos;
 
@@ -101,6 +104,8 @@ public class Far {
     public void setFornecedor(Fornecedor fornecedor) { this.fornecedor = fornecedor; }
     public LocalDate getDataVisita() { return dataVisita; }
     public void setDataVisita(LocalDate dataVisita) { this.dataVisita = dataVisita; }
+    public String getCodigoProduto() { return codigoProduto; }
+    public void setCodigoProduto(String codigoProduto) { this.codigoProduto = codigoProduto; }
     public Integer getQtdProdutos() { return qtdProdutos; }
     public void setQtdProdutos(Integer qtdProdutos) { this.qtdProdutos = qtdProdutos; }
     public FarMotivo getMotivo() { return motivo; }
