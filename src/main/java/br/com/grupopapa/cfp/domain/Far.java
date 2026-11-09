@@ -67,6 +67,10 @@ public class Far {
     @Column(name = "BAIXA_FISCAL", nullable = false)
     private Boolean baixaFiscal = Boolean.FALSE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "BAIXA_FISCAL_TIPO", length = 20)
+    private TipoBaixaFiscal baixaFiscalTipo;
+
     @Column(name = "BAIXA_FISCAL_REF", length = 100)
     private String baixaFiscalReferencia;
 
@@ -133,6 +137,8 @@ public class Far {
     public void setObsFarEmpresa(String obsFarEmpresa) { this.obsFarEmpresa = obsFarEmpresa; }
     public Boolean getBaixaFiscal() { return baixaFiscal; }
     public void setBaixaFiscal(Boolean baixaFiscal) { this.baixaFiscal = baixaFiscal; }
+    public TipoBaixaFiscal getBaixaFiscalTipo() { return baixaFiscalTipo; }
+    public void setBaixaFiscalTipo(TipoBaixaFiscal v) { this.baixaFiscalTipo = v; }
     public String getBaixaFiscalReferencia() { return baixaFiscalReferencia; }
     public void setBaixaFiscalReferencia(String v) { this.baixaFiscalReferencia = v; }
     public String getBaixaFiscalObservacao() { return baixaFiscalObservacao; }

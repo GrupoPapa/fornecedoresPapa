@@ -64,6 +64,13 @@ public class FarController {
         return service.motivosAtivos(UsuarioLogado.obter()).stream().map(FarMotivoResponse::de).toList();
     }
 
+    @GetMapping("/verificar-nota")
+    @Operation(summary = "Confere no WinThor se a nota e uma NF de compra do fornecedor")
+    public VerificacaoNotaResponse verificarNota(@RequestParam String numero,
+                                                 @RequestParam(required = false) Long fornecedorId) {
+        return service.verificarNota(numero, UsuarioLogado.obter(), fornecedorId);
+    }
+
     @PostMapping("/motivos")
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(summary = "Cadastra um motivo novo (fornecedor liberado ou admin)")

@@ -24,7 +24,7 @@ public class ExportacaoFarService {
             "Data visita", "Item", "Cod. produto", "Descricao produto", "Qtd", "Motivo",
             "Qtd total FAR", "Obs. ocorrencia",
             "Data abertura FAR", "N. FAR", "N. nota", "N. pedido", "Status", "Obs. FAR fornecedor", "Obs. FAR empresa",
-            "Comprovante pagamento", "Vinculo baixa fiscal", "Referencia baixa fiscal", "Data vinculo", "Vinculado por"
+            "Comprovante pagamento", "Vinculo baixa fiscal", "Tipo NF baixa", "NF baixa fiscal", "Data vinculo", "Vinculado por"
     };
 
     private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -49,6 +49,7 @@ public class ExportacaoFarService {
                     f.getNumeroFar(), f.getNumeroNota(), f.getNumeroPedido(), status, f.getObsFarFornecedor(), f.getObsFarEmpresa(),
                     qtdComprovantes > 0 ? "Sim" : (f.getStatus() == StatusFar.FINALIZADO_APROVADO ? "Pendente" : "Nao"),
                     Boolean.TRUE.equals(f.getBaixaFiscal()) ? "Sim" : "Nao",
+                    f.getBaixaFiscalTipo() == null ? null : f.getBaixaFiscalTipo().getRotulo(),
                     f.getBaixaFiscalReferencia(),
                     f.getDataBaixaFiscal() == null ? null : f.getDataBaixaFiscal().format(DATA_HORA),
                     f.getUsuarioBaixa() == null ? null : f.getUsuarioBaixa().getNome()});

@@ -17,7 +17,8 @@ public record FarRequest(
         @Size(max = 1000, message = "No maximo 1000 caracteres") String obsOcorrencia,
         LocalDate dataAberturaFar,
         @Size(max = 30, message = "No maximo 30 caracteres") String numeroFar,
-        @Size(max = 30, message = "No maximo 30 caracteres") String numeroNota,
+        @Size(max = 30, message = "No maximo 30 caracteres")
+        @Pattern(regexp = "\\d*", message = "Informe apenas os numeros da nota") String numeroNota,
         @Size(max = 30, message = "No maximo 30 caracteres") String numeroPedido,
         @NotNull(message = "Selecione a situacao") StatusFar status,
         @Size(max = 100, message = "No maximo 100 caracteres") String statusOutros,

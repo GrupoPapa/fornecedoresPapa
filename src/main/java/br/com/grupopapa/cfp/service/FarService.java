@@ -6,7 +6,10 @@ import br.com.grupopapa.cfp.exception.NegocioException;
 import br.com.grupopapa.cfp.exception.RecursoNaoEncontradoException;
 import br.com.grupopapa.cfp.repository.*;
 import br.com.grupopapa.cfp.security.UsuarioAutenticado;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
@@ -31,6 +34,7 @@ public class FarService {
     private static final Set<String> TIPOS_ACEITOS =
             Set.of("application/pdf", "image/jpeg", "image/jpg", "image/png", "image/webp");
     private static final DateTimeFormatter DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final Logger log = LoggerFactory.getLogger(FarService.class);
 
     private final FarRepository repository;
     private final FarAnexoRepository anexoRepository;
@@ -38,6 +42,7 @@ public class FarService {
     private final FarMotivoRepository motivoRepository;
     private final FornecedorService fornecedorService;
     private final UsuarioRepository usuarioRepository;
+    private final ErpNotaCompraRepository erpNota;
     private final long maxBytes;
     private final int maxAnexos;
 
@@ -47,6 +52,7 @@ public class FarService {
                       FarMotivoRepository motivoRepository,
                       FornecedorService fornecedorService,
                       UsuarioRepository usuarioRepository,
+                      ErpNotaCompraRepository erpNota,
                       @Value("${app.far.anexo-max-mb:5}") long maxMb,
                       @Value("${app.far.max-anexos:10}") int maxAnexos) {
         this.repository = repository;
@@ -55,6 +61,7 @@ public class FarService {
         this.motivoRepository = motivoRepository;
         this.fornecedorService = fornecedorService;
         this.usuarioRepository = usuarioRepository;
+        this.erpNota = erpNota;
         this.maxBytes = maxMb * 1024L * 1024L;
         this.maxAnexos = maxAnexos;
     }
@@ -190,6 +197,7 @@ public class FarService {
         far.setUsuarioCriacao(usuario);
         aplicar(far, request, logado, true);
         validar(far, temComprovante ? 1 : 0, null);
+        exigirNotaDeCompra(far, null);
 
         far = repository.saveAndFlush(far);
         registrar(far.getId(), usuario, "CRIACAO", "FAR registrada: " + resumo(far) + ".");
@@ -211,10 +219,12 @@ public class FarService {
         }
 
         Map<String, String> antes = retrato(far);
+        String notaAnterior = far.getNumeroNota();
         aplicar(far, request, logado, false);
         long comprovantes = anexoRepository.countByFarIdAndTipo(far.getId(), TipoAnexoFar.COMPROVANTE_PAGAMENTO)
                 + (temComprovante ? 1 : 0);
         validar(far, comprovantes, far.getId());
+        exigirNotaDeCompra(far, notaAnterior);
 
         far = repository.saveAndFlush(far);
         String mudancas = diferencas(antes, retrato(far));
@@ -315,6 +325,58 @@ public class FarService {
         }
         if (temNumero && repository.existeNumero(far.getFornecedor().getId(), far.getNumeroFar(), ignorarId)) {
             throw new NegocioException("Ja existe uma FAR com o numero " + far.getNumeroFar() + " para este fornecedor.");
+        }
+    }
+
+    // ================================================================ NF de compra
+
+    /** Confere no WinThor se a nota e uma NF de compra do fornecedor (usada pela tela ao digitar). */
+    @Transactional(readOnly = true)
+    public VerificacaoNotaResponse verificarNota(String numero, UsuarioAutenticado logado, Long fornecedorIdInformado) {
+        Fornecedor fornecedor = fornecedorDoEscopo(logado, fornecedorIdInformado);
+        return verificarNota(numero, fornecedor);
+    }
+
+    private VerificacaoNotaResponse verificarNota(String numero, Fornecedor fornecedor) {
+        String n = numero == null ? "" : numero.trim();
+        if (!n.matches("\\d{1,15}")) {
+            return new VerificacaoNotaResponse(n, true, false, "Informe apenas os numeros da nota.",
+                    null, null, null, null, List.of());
+        }
+        if (fornecedor.getCodFornecedorErp() == null) {
+            return new VerificacaoNotaResponse(n, false, false,
+                    "Fornecedor sem codigo no WinThor: nao foi possivel conferir a nota.",
+                    null, null, null, null, List.of());
+        }
+        try {
+            return erpNota.notaDeCompra(fornecedor.getCodFornecedorErp(), Long.parseLong(n))
+                    .map(nf -> new VerificacaoNotaResponse(n, true, true,
+                            "NF de compra " + n + " encontrada"
+                                    + (nf.dataEntrada() != null ? ": entrada em " + nf.dataEntrada().format(DATA) : "")
+                                    + (nf.codFilial() != null ? ", filial " + nf.codFilial() : "")
+                                    + ", " + nf.qtdItens() + " produto(s).",
+                            nf.dataEntrada(), nf.codFilial(), nf.qtdItens(), nf.valorTotal(), nf.produtos()))
+                    .orElseGet(() -> new VerificacaoNotaResponse(n, true, false,
+                            "A NF " + n + " nao foi encontrada como nota de compra de " + fornecedor.getRazaoSocial()
+                                    + " no WinThor. Confira o numero da nota.",
+                            null, null, null, null, List.of()));
+        } catch (DataAccessException e) {
+            log.warn("Falha ao conferir a NF {} no WinThor: {}", n, e.getMostSpecificCause().getMessage());
+            return new VerificacaoNotaResponse(n, false, false,
+                    "Nao foi possivel consultar o WinThor agora; a nota sera conferida depois.",
+                    null, null, null, null, List.of());
+        }
+    }
+
+    /** Ao gravar: nota nova ou alterada precisa ser NF de compra do fornecedor (se o WinThor responder). */
+    private void exigirNotaDeCompra(Far far, String notaAnterior) {
+        String nota = far.getNumeroNota();
+        if (nota == null || nota.equals(notaAnterior)) {
+            return;
+        }
+        VerificacaoNotaResponse v = verificarNota(nota, far.getFornecedor());
+        if (v.consultado() && !v.encontrada()) {
+            throw new NegocioException(v.mensagem());
         }
     }
 
@@ -429,14 +491,19 @@ public class FarService {
             throw new NegocioException("A FAR ainda nao tem numero. Ela precisa estar aberta para ser vinculada.");
         }
         Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
+        if (request == null || request.tipo() == null || texto(request.referencia()) == null) {
+            throw new NegocioException("Informe a NF da baixa fiscal e se ela e de perda ou de devolucao ao fornecedor.");
+        }
         far.setBaixaFiscal(true);
-        far.setBaixaFiscalReferencia(request == null ? null : texto(request.referencia()));
-        far.setBaixaFiscalObservacao(request == null ? null : texto(request.observacao()));
+        far.setBaixaFiscalTipo(request.tipo());
+        far.setBaixaFiscalReferencia(texto(request.referencia()));
+        far.setBaixaFiscalObservacao(texto(request.observacao()));
         far.setDataBaixaFiscal(OffsetDateTime.now());
         far.setUsuarioBaixa(usuario);
         far = repository.save(far);
-        StringBuilder sb = new StringBuilder("Vinculo com a baixa fiscal registrado");
-        if (far.getBaixaFiscalReferencia() != null) sb.append(". Referencia: ").append(far.getBaixaFiscalReferencia());
+        StringBuilder sb = new StringBuilder("Vinculo com a baixa fiscal registrado: ")
+                .append(far.getBaixaFiscalTipo().getRotulo())
+                .append(", NF ").append(far.getBaixaFiscalReferencia());
         if (far.getBaixaFiscalObservacao() != null) sb.append(". ").append(far.getBaixaFiscalObservacao());
         registrar(far.getId(), usuario, "BAIXA_FISCAL", sb.append('.').toString());
         return far;
@@ -450,13 +517,14 @@ public class FarService {
         }
         String anterior = far.getBaixaFiscalReferencia();
         far.setBaixaFiscal(false);
+        far.setBaixaFiscalTipo(null);
         far.setBaixaFiscalReferencia(null);
         far.setBaixaFiscalObservacao(null);
         far.setDataBaixaFiscal(null);
         far.setUsuarioBaixa(null);
         far = repository.save(far);
         registrar(far.getId(), usuarioRepository.getReferenceById(logado.getId()), "BAIXA_DESFEITA",
-                "Vinculo com a baixa fiscal desfeito" + (anterior != null ? " (referencia " + anterior + ")" : "")
+                "Vinculo com a baixa fiscal desfeito" + (anterior != null ? " (NF " + anterior + ")" : "")
                         + (texto(motivo) != null ? ". Motivo: " + motivo.trim() : "") + ".");
         return far;
     }

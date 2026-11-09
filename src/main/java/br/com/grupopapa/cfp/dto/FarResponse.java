@@ -3,6 +3,7 @@ package br.com.grupopapa.cfp.dto;
 import br.com.grupopapa.cfp.domain.Far;
 import br.com.grupopapa.cfp.domain.FarItem;
 import br.com.grupopapa.cfp.domain.StatusFar;
+import br.com.grupopapa.cfp.domain.TipoBaixaFiscal;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -18,7 +19,7 @@ public record FarResponse(
         LocalDate dataAberturaFar, String numeroFar, String numeroNota, String numeroPedido,
         StatusFar status, String statusRotulo, String statusOutros,
         String obsFarFornecedor, String obsFarEmpresa,
-        Boolean baixaFiscal, String baixaFiscalReferencia, String baixaFiscalObservacao,
+        Boolean baixaFiscal, TipoBaixaFiscal baixaFiscalTipo, String baixaFiscalTipoRotulo, String baixaFiscalReferencia, String baixaFiscalObservacao,
         OffsetDateTime dataBaixaFiscal, String usuarioBaixa,
         long qtdComprovantes, boolean comprovantePendente,
         boolean editavel,
@@ -50,7 +51,8 @@ public record FarResponse(
                 f.getDataAberturaFar(), f.getNumeroFar(), f.getNumeroNota(), f.getNumeroPedido(),
                 f.getStatus(), f.getStatus().getRotulo(), f.getStatusOutros(),
                 f.getObsFarFornecedor(), f.getObsFarEmpresa(),
-                f.getBaixaFiscal(), f.getBaixaFiscalReferencia(), f.getBaixaFiscalObservacao(),
+                f.getBaixaFiscal(), f.getBaixaFiscalTipo(),
+                f.getBaixaFiscalTipo() == null ? null : f.getBaixaFiscalTipo().getRotulo(), f.getBaixaFiscalReferencia(), f.getBaixaFiscalObservacao(),
                 f.getDataBaixaFiscal(),
                 completo && f.getUsuarioBaixa() != null ? f.getUsuarioBaixa().getNome() : null,
                 qtdComprovantes,
