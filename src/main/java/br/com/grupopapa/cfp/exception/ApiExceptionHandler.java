@@ -40,6 +40,19 @@ public class ApiExceptionHandler {
         return montar(HttpStatus.BAD_REQUEST, ex.getMessage(), req, null);
     }
 
+    /** Planilha com erros: devolve a lista por linha para a tela mostrar em tabela. */
+    @ExceptionHandler(br.com.grupopapa.cfp.importacao.ImportacaoException.class)
+    public ResponseEntity<Map<String, Object>> importacao(br.com.grupopapa.cfp.importacao.ImportacaoException ex,
+                                                          HttpServletRequest req) {
+        Map<String, Object> corpo = new LinkedHashMap<>();
+        corpo.put("timestamp", OffsetDateTime.now());
+        corpo.put("status", HttpStatus.BAD_REQUEST.value());
+        corpo.put("mensagem", ex.getMessage());
+        corpo.put("caminho", req.getRequestURI());
+        corpo.put("errosPlanilha", ex.getErros());
+        return ResponseEntity.badRequest().body(corpo);
+    }
+
     @ExceptionHandler(RecursoNaoEncontradoException.class)
     public ResponseEntity<ApiErro> naoEncontrado(RecursoNaoEncontradoException ex, HttpServletRequest req) {
         return montar(HttpStatus.NOT_FOUND, ex.getMessage(), req, null);
