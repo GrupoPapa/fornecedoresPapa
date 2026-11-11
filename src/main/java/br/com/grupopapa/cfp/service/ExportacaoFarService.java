@@ -23,7 +23,7 @@ public class ExportacaoFarService {
             "Fornecedor", "Cod. fornecedor WinThor",
             "Data visita", "Item", "Cod. produto", "Descricao produto", "Qtd", "Motivo",
             "Qtd total FAR", "Obs. ocorrencia",
-            "Data abertura FAR", "N. FAR", "N. nota", "N. pedido", "Status", "Obs. FAR fornecedor", "Obs. FAR empresa",
+            "Data abertura FAR", "N. FAR", "N. nota", "N. pedido", "Status", "Motivo reprovacao", "Obs. FAR fornecedor", "Obs. FAR empresa",
             "Comprovante pagamento", "Vinculo baixa fiscal", "Tipo NF baixa", "NF baixa fiscal", "Data vinculo", "Vinculado por"
     };
 
@@ -46,7 +46,7 @@ public class ExportacaoFarService {
                     i == null ? null : i.getMotivo().getDescricao(),
                     f.getQtdProdutos(), f.getObsOcorrencia(),
                     f.getDataAberturaFar() == null ? null : f.getDataAberturaFar().format(DATA),
-                    f.getNumeroFar(), f.getNumeroNota(), f.getNumeroPedido(), status, f.getObsFarFornecedor(), f.getObsFarEmpresa(),
+                    f.getNumeroFar(), f.getNumeroNota(), f.getNumeroPedido(), status, f.getMotivoReprovacao(), f.getObsFarFornecedor(), f.getObsFarEmpresa(),
                     qtdComprovantes > 0 ? "Sim" : (f.getStatus() == StatusFar.FINALIZADO_APROVADO ? "Pendente" : "Nao"),
                     Boolean.TRUE.equals(f.getBaixaFiscal()) ? "Sim" : "Nao",
                     f.getBaixaFiscalTipo() == null ? null : f.getBaixaFiscalTipo().getRotulo(),

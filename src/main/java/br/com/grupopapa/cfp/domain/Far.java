@@ -58,6 +58,10 @@ public class Far {
     @Column(name = "STATUS_OUTROS", length = 100)
     private String statusOutros;
 
+    /** Obrigatorio quando o processo e finalizado como reprovado. */
+    @Column(name = "MOTIVO_REPROVACAO", length = 500)
+    private String motivoReprovacao;
+
     @Column(name = "OBS_FAR_FORNECEDOR", length = 1000)
     private String obsFarFornecedor;
 
@@ -131,6 +135,8 @@ public class Far {
     public void setStatus(StatusFar status) { this.status = status; }
     public String getStatusOutros() { return statusOutros; }
     public void setStatusOutros(String statusOutros) { this.statusOutros = statusOutros; }
+    public String getMotivoReprovacao() { return motivoReprovacao; }
+    public void setMotivoReprovacao(String motivoReprovacao) { this.motivoReprovacao = motivoReprovacao; }
     public String getObsFarFornecedor() { return obsFarFornecedor; }
     public void setObsFarFornecedor(String obsFarFornecedor) { this.obsFarFornecedor = obsFarFornecedor; }
     public String getObsFarEmpresa() { return obsFarEmpresa; }

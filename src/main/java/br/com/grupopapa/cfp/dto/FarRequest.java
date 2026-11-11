@@ -22,6 +22,7 @@ public record FarRequest(
         @Size(max = 30, message = "No maximo 30 caracteres") String numeroPedido,
         @NotNull(message = "Selecione a situacao") StatusFar status,
         @Size(max = 100, message = "No maximo 100 caracteres") String statusOutros,
+        @Size(max = 500, message = "No maximo 500 caracteres") String motivoReprovacao,
         @Size(max = 1000, message = "No maximo 1000 caracteres") String obsFarFornecedor,
         @Size(max = 1000, message = "No maximo 1000 caracteres") String obsFarEmpresa) {
 

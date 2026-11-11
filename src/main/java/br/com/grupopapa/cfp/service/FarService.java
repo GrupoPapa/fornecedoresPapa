@@ -247,8 +247,13 @@ public class FarService {
         far.setNumeroFar(texto(r.numeroFar()));
         far.setNumeroNota(texto(r.numeroNota()));
         far.setNumeroPedido(texto(r.numeroPedido()));
+        // "Outros" saiu da lista: so continua valendo para a FAR que ja estava nessa situacao
+        if (r.status() == StatusFar.OUTROS && far.getStatus() != StatusFar.OUTROS) {
+            throw new NegocioException("A situacao \"Outros\" nao esta mais disponivel. Escolha outra situacao.");
+        }
         far.setStatus(r.status());
         far.setStatusOutros(r.status() == StatusFar.OUTROS ? texto(r.statusOutros()) : null);
+        far.setMotivoReprovacao(r.status() == StatusFar.FINALIZADO_REPROVADO ? texto(r.motivoReprovacao()) : null);
         far.setObsFarFornecedor(texto(r.obsFarFornecedor()));
         if (logado.isAdmin()) {
             far.setObsFarEmpresa(texto(r.obsFarEmpresa())); // observacao da empresa: so a equipe interna
@@ -316,6 +321,9 @@ public class FarService {
         }
         if (far.getStatus().isFinalizado() && !temNumero) {
             throw new NegocioException("Para finalizar o processo informe o numero e a data de abertura da FAR.");
+        }
+        if (far.getStatus() == StatusFar.FINALIZADO_REPROVADO && far.getMotivoReprovacao() == null) {
+            throw new NegocioException("Informe o motivo da reprovacao.");
         }
         if (far.getStatus() == StatusFar.OUTROS && far.getStatusOutros() == null) {
             throw new NegocioException("Descreva a situacao quando escolher \"Outros\".");
@@ -594,6 +602,7 @@ public class FarService {
         m.put("N. nota", f.getNumeroNota());
         m.put("N. pedido", f.getNumeroPedido());
         m.put("Situacao", f.getStatus() == null ? null : rotuloStatus(f));
+        m.put("Motivo da reprovacao", f.getMotivoReprovacao());
         m.put("Obs. FAR fornecedor", f.getObsFarFornecedor());
         m.put("Obs. FAR empresa", f.getObsFarEmpresa());
         return m;
