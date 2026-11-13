@@ -30,14 +30,17 @@ public class ProdutoService {
     private final UsuarioRepository usuarioRepository;
     private final FornecedorService fornecedorService;
     private final PedidoService pedidoService;
+    private final ConferenciaCodigosService conferenciaCodigos;
 
     public ProdutoService(ProdutoRepository produtoRepository,
                           ProdutoHistoricoRepository historicoRepository,
                           ProdutoFotoRepository fotoRepository,
                           UsuarioRepository usuarioRepository,
                           FornecedorService fornecedorService,
-                          PedidoService pedidoService) {
+                          PedidoService pedidoService,
+                          ConferenciaCodigosService conferenciaCodigos) {
         this.pedidoService = pedidoService;
+        this.conferenciaCodigos = conferenciaCodigos;
         this.produtoRepository = produtoRepository;
         this.historicoRepository = historicoRepository;
         this.fotoRepository = fotoRepository;
@@ -239,20 +242,18 @@ public class ProdutoService {
     }
 
     private void validarRegras(ProdutoRequest r, Fornecedor fornecedor, Long produtoId) {
-        Long fornecedorId = fornecedor.getId();
-        boolean duplicado = (produtoId == null)
-                ? produtoRepository.existsByFornecedorIdAndCodigoIgnoreCase(fornecedorId, r.codigo().trim())
-                : produtoRepository.existsByFornecedorIdAndCodigoIgnoreCaseAndIdNot(fornecedorId, r.codigo().trim(), produtoId);
-        if (duplicado) {
-            throw new NegocioException("Ja existe um produto com o codigo " + r.codigo() + " para este fornecedor.");
+        String ean = r.codBarraProduto().trim();
+        boolean semDun = Boolean.TRUE.equals(r.semDun());
+        String dun = semDun ? null : vazioParaNulo(r.codBarraCaixa());
+        if (!semDun && dun == null) {
+            throw new NegocioException("Informe o codigo de barras da caixa master (DUN) ou marque que o produto nao tem DUN.");
         }
 
-        String ean = r.codBarraProduto().trim();
-        boolean eanDuplicado = (produtoId == null)
-                ? produtoRepository.existsByCodBarraProduto(ean)
-                : produtoRepository.existsByCodBarraProdutoAndIdNot(ean, produtoId);
-        if (eanDuplicado) {
-            throw new NegocioException("O codigo de barras " + ean + " ja esta cadastrado em outro produto.");
+        // codigo de fabrica, EAN e DUN: unicos no portal e sem conflito com o cadastro do WinThor
+        var conferencia = conferenciaCodigos.conferir(fornecedor, r.codigo(), ean, dun, produtoId);
+        if (!conferencia.ok()) {
+            throw new NegocioException(conferencia.conflitos().stream()
+                    .map(c -> c.mensagem()).distinct().collect(java.util.stream.Collectors.joining(" ")));
         }
 
         if (r.pesoBruto().compareTo(r.pesoLiquido()) < 0) {
@@ -278,16 +279,14 @@ public class ProdutoService {
                 throw new NegocioException("O metro quadrado do pallet nao pode ser menor que o metro quadrado da caixa.");
             }
         }
-        if (r.codBarraCaixa() != null && !r.codBarraCaixa().isBlank()
-                && r.codBarraCaixa().trim().equals(ean)) {
-            throw new NegocioException("O codigo de barras da caixa master (DUN) deve ser diferente do EAN do produto.");
-        }
     }
 
     private void aplicar(Produto p, ProdutoRequest r, Fornecedor fornecedor) {
         p.setCodigo(r.codigo().trim());
         p.setDescricao(r.descricao().trim());
-        p.setCodBarraCaixa(vazioParaNulo(r.codBarraCaixa()));
+        boolean semDun = Boolean.TRUE.equals(r.semDun());
+        p.setSemDun(semDun);
+        p.setCodBarraCaixa(semDun ? null : vazioParaNulo(r.codBarraCaixa()));
         p.setCodBarraProduto(r.codBarraProduto().trim());
         p.setNcm(r.ncm().trim());
         p.setPesoLiquido(r.pesoLiquido());

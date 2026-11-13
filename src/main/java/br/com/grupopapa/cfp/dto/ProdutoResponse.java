@@ -34,7 +34,8 @@ public record ProdutoResponse(
         OffsetDateTime dataEnvio,
         OffsetDateTime dataAnalise,
         OffsetDateTime dataCriacao,
-        OffsetDateTime dataAtualizacao) {
+        OffsetDateTime dataAtualizacao,
+        Boolean semDun) {
 
     public static ProdutoResponse de(Produto p) {
         return new ProdutoResponse(
@@ -64,6 +65,7 @@ public record ProdutoResponse(
                 p.getDataEnvio(),
                 p.getDataAnalise(),
                 p.getDataCriacao(),
-                p.getDataAtualizacao());
+                p.getDataAtualizacao(),
+                Boolean.TRUE.equals(p.getSemDun()));
     }
 }

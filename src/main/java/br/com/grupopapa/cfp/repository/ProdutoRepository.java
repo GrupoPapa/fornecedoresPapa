@@ -15,6 +15,16 @@ public interface ProdutoRepository extends JpaRepository<Produto, Long> {
 
     Optional<Produto> findByIdAndFornecedorId(Long id, Long fornecedorId);
 
+    /** Produtos do portal que usam o codigo de barras como EAN ou como DUN (menos o proprio). */
+    @Query("""
+           select p from Produto p
+           join fetch p.fornecedor
+           where (p.codBarraProduto = :codigo or p.codBarraCaixa = :codigo)
+             and (:ignorarId is null or p.id <> :ignorarId)
+           order by p.id
+           """)
+    List<Produto> comCodigoDeBarras(@Param("codigo") String codigo, @Param("ignorarId") Long ignorarId);
+
     boolean existsByFornecedorIdAndCodigoIgnoreCase(Long fornecedorId, String codigo);
 
     boolean existsByFornecedorIdAndCodigoIgnoreCaseAndIdNot(Long fornecedorId, String codigo, Long id);

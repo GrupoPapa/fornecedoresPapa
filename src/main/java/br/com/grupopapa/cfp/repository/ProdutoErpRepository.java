@@ -9,6 +9,10 @@ import java.util.List;
 
 public interface ProdutoErpRepository extends JpaRepository<ProdutoErp, Long> {
 
+    /** CODPROD do WinThor ja gravado para o produto do portal (vazio se ainda nao foi integrado). */
+    @Query("select e.codProdErp from ProdutoErp e where e.produtoId = :produtoId and e.codProdErp is not null")
+    List<Long> codProdDoProduto(@Param("produtoId") Long produtoId);
+
     @Query("select e from ProdutoErp e where e.produto.pedido.id = :pedidoId")
     List<ProdutoErp> listarPorPedido(@Param("pedidoId") Long pedidoId);
 }

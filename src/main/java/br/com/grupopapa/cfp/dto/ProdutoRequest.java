@@ -16,7 +16,7 @@ public record ProdutoRequest(
 
         @CodigoBarras
         @Size(max = 14)
-        String codBarraCaixa,
+        String codBarraCaixa,   // DUN: obrigatorio, a menos que semDun = true (conferido no ProdutoService)
 
         @NotBlank(message = "Informe o codigo de barras do produto")
         @CodigoBarras
@@ -60,5 +60,8 @@ public record ProdutoRequest(
         BigDecimal m2Pallet,
 
         @Size(max = 500, message = "Observacao deve ter no maximo 500 caracteres")
-        String observacao) {
+        String observacao,
+
+        // true = a caixa master nao tem codigo de barras proprio; sem isso o DUN e obrigatorio
+        Boolean semDun) {
 }

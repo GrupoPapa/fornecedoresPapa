@@ -42,7 +42,8 @@ public class ImportacaoProdutoService {
             new Coluna("codigo", "Código de fábrica", true, Tipo.TEXTO, 18, "Código do produto no seu sistema (até 30 caracteres). Não pode repetir."),
             new Coluna("descricao", "Descrição do produto", true, Tipo.TEXTO, 45, "Até 150 caracteres."),
             new Coluna("codBarraProduto", "Cód. barras do produto (EAN)", true, Tipo.TEXTO, 20, "EAN/GTIN de 8, 12, 13 ou 14 dígitos, só números."),
-            new Coluna("codBarraCaixa", "Cód. barras da caixa master (DUN)", false, Tipo.TEXTO, 22, "Opcional. Diferente do EAN do produto."),
+            new Coluna("codBarraCaixa", "Cód. barras da caixa master (DUN)", false, Tipo.TEXTO, 22, "Obrigatório: DUN-14 da caixa master, diferente do EAN. Só deixe em branco se marcar SIM em \"Produto sem DUN\"."),
+            new Coluna("semDun", "Produto sem DUN (SIM/NÃO)", false, Tipo.TEXTO, 16, "Escreva SIM se a caixa master não tem código de barras próprio. Em branco = NÃO."),
             new Coluna("ncm", "NCM", true, Tipo.TEXTO, 12, "Classificação fiscal com 8 dígitos, só números."),
             new Coluna("qtdEmbalagem", "Qtd. por embalagem / caixa master", true, Tipo.INTEIRO, 18, "Unidades dentro da caixa master. Número inteiro maior que zero."),
             new Coluna("pesoLiquido", "Peso líquido (kg)", true, Tipo.DECIMAL, 14, "Em kg por unidade. Ex.: 0,850"),
@@ -53,7 +54,8 @@ public class ImportacaoProdutoService {
             new Coluna("codigo", "Código de fábrica", true, Tipo.TEXTO, 18, "Código do produto no seu sistema (até 30 caracteres). Não pode repetir."),
             new Coluna("descricao", "Descrição do produto", true, Tipo.TEXTO, 45, "Até 150 caracteres."),
             new Coluna("codBarraProduto", "Cód. barras do produto (EAN)", true, Tipo.TEXTO, 20, "EAN/GTIN de 8, 12, 13 ou 14 dígitos, só números."),
-            new Coluna("codBarraCaixa", "Cód. barras da caixa (DUN)", false, Tipo.TEXTO, 22, "Opcional. Diferente do EAN do produto."),
+            new Coluna("codBarraCaixa", "Cód. barras da caixa (DUN)", false, Tipo.TEXTO, 22, "Obrigatório: DUN-14 da caixa, diferente do EAN. Só deixe em branco se marcar SIM em \"Produto sem DUN\"."),
+            new Coluna("semDun", "Produto sem DUN (SIM/NÃO)", false, Tipo.TEXTO, 16, "Escreva SIM se a caixa não tem código de barras próprio. Em branco = NÃO."),
             new Coluna("ncm", "NCM", true, Tipo.TEXTO, 12, "Classificação fiscal com 8 dígitos, só números."),
             new Coluna("m2Caixa", "m² por caixa", true, Tipo.DECIMAL, 13, "Metros quadrados que a caixa cobre. Ex.: 2,20"),
             new Coluna("m2Pallet", "m² por pallet", false, Tipo.DECIMAL, 13, "Metros quadrados por pallet. Maior ou igual ao m² por caixa."),
@@ -127,6 +129,9 @@ public class ImportacaoProdutoService {
             if (col.tipo() == Tipo.INTEIRO) {
                 Planilha.validarIntervalo(s, h.createIntegerConstraint(DataValidationConstraint.OperatorType.GREATER_THAN, "0", null),
                         LINHA_TITULOS + 1, LINHA_TITULOS + LINHAS_MODELO, c, col.titulo(), "Informe um número inteiro maior que zero.", true);
+            } else if ("semDun".equals(col.campo())) {
+                Planilha.validarIntervalo(s, h.createExplicitListConstraint(new String[]{"SIM", "NÃO"}),
+                        LINHA_TITULOS + 1, LINHA_TITULOS + LINHAS_MODELO, c, col.titulo(), "Escolha SIM ou NÃO.", false);
             } else if (col.tipo() == Tipo.DECIMAL) {
                 Planilha.validarIntervalo(s, h.createDecimalConstraint(DataValidationConstraint.OperatorType.GREATER_THAN, "0", null),
                         LINHA_TITULOS + 1, LINHA_TITULOS + LINHAS_MODELO, c, col.titulo(), "Informe um número maior que zero.", true);
@@ -139,19 +144,21 @@ public class ImportacaoProdutoService {
         String[] passos = {
                 "1. Preencha a aba PRODUTOS, um produto por linha. Linhas em branco são ignoradas.",
                 "2. Códigos de barras e NCM: digite só os números (a coluna já está como texto para não perder zeros).",
+                "   O DUN da caixa master é obrigatório; se o produto não tiver, escreva SIM em \"Produto sem DUN\".",
+                "   EAN, DUN e código de fábrica são conferidos com o cadastro do WinThor: código já usado em outro produto é recusado.",
                 "3. Números com casas decimais podem usar vírgula: 0,850.",
                 "4. Salve em Excel (.xlsx) e envie para a equipe, ou importe você mesmo no portal (Cadastro de produtos > Importar planilha).",
                 "5. Se alguma linha tiver erro, o portal não importa nada e mostra a linha e o motivo para corrigir.",
                 "6. Os produtos entram no pedido de cadastro em aberto. Confira no portal e clique em Enviar pedido."};
         for (int i = 0; i < passos.length; i++) Planilha.escrever(inst, 2 + i, 0, passos[i], null);
-        Planilha.escrever(inst, 10, 0, "Coluna", e.cabecalho());
-        Planilha.escrever(inst, 10, 1, "Obrigatória", e.cabecalho());
-        Planilha.escrever(inst, 10, 2, "Como preencher", e.cabecalho());
+        Planilha.escrever(inst, 12, 0, "Coluna", e.cabecalho());
+        Planilha.escrever(inst, 12, 1, "Obrigatória", e.cabecalho());
+        Planilha.escrever(inst, 12, 2, "Como preencher", e.cabecalho());
         for (int i = 0; i < colunas.size(); i++) {
             Coluna col = colunas.get(i);
-            Planilha.escrever(inst, 11 + i, 0, col.titulo(), e.rotulo());
-            Planilha.escrever(inst, 11 + i, 1, col.obrigatoria() ? "Sim" : "Não", null);
-            Planilha.escrever(inst, 11 + i, 2, col.ajuda(), null);
+            Planilha.escrever(inst, 13 + i, 0, col.titulo(), e.rotulo());
+            Planilha.escrever(inst, 13 + i, 1, col.obrigatoria() ? "Sim" : "Não", null);
+            Planilha.escrever(inst, 13 + i, 2, col.ajuda(), null);
         }
         inst.setColumnWidth(0, 36 * 256);
         inst.setColumnWidth(1, 12 * 256);
@@ -285,7 +292,15 @@ public class ImportacaoProdutoService {
         return new ProdutoRequest(
                 textos.get("codigo"), textos.get("descricao"), textos.get("codBarraCaixa"), textos.get("codBarraProduto"),
                 textos.get("ncm"), numeros.get("pesoLiquido"), numeros.get("pesoBruto"),
-                null, null, qtdEmbalagem, numeros.get("m2Caixa"), numeros.get("m2Pallet"), textos.get("observacao"));
+                null, null, qtdEmbalagem, numeros.get("m2Caixa"), numeros.get("m2Pallet"), textos.get("observacao"),
+                simNao(textos.get("semDun")));
+    }
+
+    /** SIM / S / X / TRUE = verdadeiro; em branco ou NAO = falso. */
+    private static Boolean simNao(String v) {
+        if (v == null) return false;
+        String t = Planilha.normalizar(v);
+        return t.equals("sim") || t.equals("s") || t.equals("x") || t.equals("true") || t.equals("1");
     }
 
     private static String tituloDo(String campo, List<Coluna> colunas) {

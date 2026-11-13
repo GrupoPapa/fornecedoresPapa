@@ -32,6 +32,10 @@ public class Produto {
     @Column(name = "COD_BARRA_CAIXA", length = 14)
     private String codBarraCaixa;
 
+    /** A caixa master nao tem codigo de barras proprio (DUN). */
+    @Column(name = "SEM_DUN", nullable = false)
+    private Boolean semDun = Boolean.FALSE;
+
     @Column(name = "COD_BARRA_PRODUTO", nullable = false, length = 14)
     private String codBarraProduto;
 
@@ -113,6 +117,8 @@ public class Produto {
     public void setCodigo(String codigo) { this.codigo = codigo; }
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
+    public Boolean getSemDun() { return semDun; }
+    public void setSemDun(Boolean semDun) { this.semDun = semDun; }
     public String getCodBarraCaixa() { return codBarraCaixa; }
     public void setCodBarraCaixa(String codBarraCaixa) { this.codBarraCaixa = codBarraCaixa; }
     public String getCodBarraProduto() { return codBarraProduto; }
