@@ -33,6 +33,8 @@ public class ProdutoErp {
     @Column(name = "UNIDADEMASTER", length = 2) private String unidadeMaster;   // PCPRODUT VARCHAR2(2)
     @Column(name = "QTUNITCX", precision = 8, scale = 2) private BigDecimal qtUnitCx;    // NUMBER(8,2)
     @Column(name = "MULTIPLO", precision = 18, scale = 6) private BigDecimal multiplo;   // NUMBER(18,6)
+    // PCPRODUT.MULTIPLOCOMPRAS NUMBER(18,6) - quantidade multipla de compra do produto
+    @Column(name = "MULTIPLOCOMPRAS", precision = 18, scale = 6) private BigDecimal multiploCompras;
     @Column(name = "PESOLIQ", precision = 12, scale = 6) private BigDecimal pesoLiq;     // NUMBER(12,6)
     @Column(name = "PESOBRUTO", precision = 12, scale = 6) private BigDecimal pesoBruto; // NUMBER(12,6)
 
@@ -105,6 +107,7 @@ public class ProdutoErp {
         exigirTexto(faltam, "Unidade master", unidadeMaster);
         exigirNumero(faltam, "Qt. por caixa", qtUnitCx);
         exigirNumero(faltam, "Multiplo", multiplo);
+        exigirNumero(faltam, "Multiplo de compras", multiploCompras);
         exigirNumero(faltam, "Peso liquido", pesoLiq);
         exigirNumero(faltam, "Peso bruto", pesoBruto);
         exigirTexto(faltam, "Codigo de barras", codAuxiliar);
@@ -165,6 +168,8 @@ public class ProdutoErp {
     public void setUnidadeMaster(String v) { this.unidadeMaster = v; }
     public BigDecimal getQtUnitCx() { return qtUnitCx; }
     public void setQtUnitCx(BigDecimal v) { this.qtUnitCx = v; }
+    public BigDecimal getMultiploCompras() { return multiploCompras; }
+    public void setMultiploCompras(BigDecimal v) { this.multiploCompras = v; }
     public BigDecimal getMultiplo() { return multiplo; }
     public void setMultiplo(BigDecimal v) { this.multiplo = v; }
     public BigDecimal getPesoLiq() { return pesoLiq; }

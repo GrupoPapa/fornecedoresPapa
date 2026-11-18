@@ -174,8 +174,11 @@ public class ProdutoService {
     public Produto analisar(Long id, boolean aprovado, String parecer, UsuarioAutenticado logado) {
         Produto produto = produtoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException("Produto nao encontrado."));
-        if (produto.getStatus() != StatusProduto.ENVIADO) {
-            throw new NegocioException("Somente produtos com status ENVIADO podem ser analisados.");
+        // RASCUNHO entra aqui porque o pedido montado pela propria equipe fica em aberto:
+        // a analista aprova/reprova item a item sem precisar enviar o pedido inteiro
+        if (produto.getStatus() != StatusProduto.ENVIADO
+                && produto.getStatus() != StatusProduto.RASCUNHO) {
+            throw new NegocioException("Este item ja foi analisado (" + produto.getStatus() + ").");
         }
         if (!aprovado && (parecer == null || parecer.isBlank())) {
             throw new NegocioException("Informe o motivo da reprovacao.");

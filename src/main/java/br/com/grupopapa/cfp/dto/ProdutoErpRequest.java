@@ -24,6 +24,7 @@ public record ProdutoErpRequest(
         @Size(max = 2, message = "Unidade master: maximo de 2 caracteres") String unidadeMaster,
         @Digits(integer = 6, fraction = 2) BigDecimal qtUnitCx,
         @Digits(integer = 12, fraction = 6) BigDecimal multiplo,
+        @Digits(integer = 12, fraction = 6) BigDecimal multiploCompras,
         @Digits(integer = 6, fraction = 6) BigDecimal pesoLiq,
         @Digits(integer = 6, fraction = 6) BigDecimal pesoBruto,
 

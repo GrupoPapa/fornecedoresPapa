@@ -205,6 +205,10 @@ public class PedidoService {
                             br.com.grupopapa.cfp.domain.ProdutoErp::getProdutoId, e -> e));
             List<String> pendentes = new java.util.ArrayList<>();
             for (Produto item : itens) {
+                // item com ressalva nao vai ser aprovado agora: nao precisa estar completo
+                if (item.getStatus() == StatusProduto.REPROVADO) {
+                    continue;
+                }
                 var erp = complementos.get(item.getId());
                 List<String> faltam = (erp == null)
                         ? List.of("todos os campos")
@@ -220,9 +224,11 @@ public class PedidoService {
             }
         }
 
-        if (aprovado && !comRessalva.isEmpty()) {
-            throw new NegocioException("Existem " + comRessalva.size()
-                    + " item(ns) com ressalva. Retire a ressalva ou reprove o pedido.");
+        // itens com ressalva ficam de fora da aprovacao e seguem como REPROVADO,
+        // para o fornecedor corrigir - os demais sao aprovados normalmente
+        if (aprovado && comRessalva.size() == itens.size()) {
+            throw new NegocioException("Todos os itens estao com ressalva. "
+                    + "Retire a ressalva de ao menos um item ou devolva o pedido.");
         }
         if (!aprovado && comRessalva.isEmpty() && (parecer == null || parecer.isBlank())) {
             throw new NegocioException("Marque a ressalva nos itens com problema ou informe o motivo da reprovacao.");

@@ -127,7 +127,7 @@ public class ErpProdutoWriter {
         String sql = """
             INSERT INTO PCPRODUT (
                  CODPROD, CODFILIAL, DESCRICAO, CODMARCA, CODFORNEC, CODEPTO, CODSEC
-               , EMBALAGEM, UNIDADE, QTUNIT, UNIDADEMASTER, QTUNITCX, MULTIPLO
+               , EMBALAGEM, UNIDADE, QTUNIT, UNIDADEMASTER, QTUNITCX, MULTIPLO, MULTIPLOCOMPRAS
                , PESOLIQ, PESOBRUTO
                , CLASSIFICFISCAL, CODNCMEX, CODAUXILIAR, GTINCODAUXILIAR, CODFAB
                , SUGVENDA, PCOMEXT1, PCOMINT1, PCOMREP1
@@ -138,7 +138,7 @@ public class ErpProdutoWriter {
                , CODFUNCCADASTRO, CODFUNCULTALTER, CODFUNCULTALTCAD)
             VALUES (
                  ?, ?, ?, ?, ?, ?, ?
-               , ?, ?, ?, ?, ?, ?
+               , ?, ?, ?, ?, ?, ?, ?
                , ?, ?
                , ?, ?, ?, ?, ?
                , ?, ?, ?, ?
@@ -153,7 +153,7 @@ public class ErpProdutoWriter {
                 codProd, codFilial, e.getDescricao(), e.getCodMarca(),
                 fornecedor.getCodFornecedorErp(), e.getCodEpto(), e.getCodSec(),
                 e.getEmbalagem(), e.getUnidade(), e.getQtUnit(), e.getUnidadeMaster(),
-                e.getQtUnitCx(), e.getMultiplo(),
+                e.getQtUnitCx(), e.getMultiplo(), e.getMultiploCompras(),
                 e.getPesoLiq(), e.getPesoBruto(),
                 e.getClassificacaoFiscal(), e.getCodNcmEx(), codigoBarras(e.getCodAuxiliar()),
                 e.getGtinCodAuxiliar(), e.getCodFab(),

@@ -21,17 +21,20 @@ public class ProdutoErpService {
     private final UsuarioRepository usuarioRepository;
     private final boolean exigirComplemento;
     private final boolean prePreencher;
+    private final int codeptoPiso;
 
     public ProdutoErpService(ProdutoErpRepository repository,
                              ProdutoService produtoService,
                              UsuarioRepository usuarioRepository,
                              @Value("${app.erp.exigir-complemento:true}") boolean exigirComplemento,
-                             @Value("${app.erp.pre-preencher:true}") boolean prePreencher) {
+                             @Value("${app.erp.pre-preencher:true}") boolean prePreencher,
+                             @Value("${app.erp.codepto-piso:13}") int codeptoPiso) {
         this.repository = repository;
         this.produtoService = produtoService;
         this.usuarioRepository = usuarioRepository;
         this.exigirComplemento = exigirComplemento;
         this.prePreencher = prePreencher;
+        this.codeptoPiso = codeptoPiso;
     }
 
     public boolean isExigirComplemento() {
@@ -102,6 +105,7 @@ public class ProdutoErpService {
                 ? new BigDecimal(p.getQtdEmbalagem()) : p.getM2Caixa());
         e.setQtUnit(BigDecimal.ONE);
         e.setMultiplo(BigDecimal.ONE);
+        e.setMultiploCompras(BigDecimal.ONE);
         e.setUnidade("UN");
         e.setUnidadeMaster("CX");
         e.setEmbalagem("UN");
@@ -122,6 +126,7 @@ public class ProdutoErpService {
         if (p.getFornecedor() != null && p.getFornecedor().getTipo().isPiso()) {
             e.setUnidade("M2");
             e.setEmbalagem("M2");
+            e.setLocalSeparacao("EG");   // piso/revestimento separa no externo geral
         }
         return e;
     }
@@ -140,6 +145,7 @@ public class ProdutoErpService {
         e.setUnidadeMaster(maiusculo(r.unidadeMaster()));
         e.setQtUnitCx(r.qtUnitCx());
         e.setMultiplo(r.multiplo());
+        e.setMultiploCompras(r.multiploCompras());
         e.setPesoLiq(r.pesoLiq());
         e.setPesoBruto(r.pesoBruto());
         e.setCodAuxiliar(texto(r.codAuxiliar()));
@@ -158,8 +164,19 @@ public class ProdutoErpService {
         e.setEnviaEcommerce(maiusculo(r.enviaEcommerce()));
         e.setUsaWms(maiusculo(r.usaWms()));
         e.setTipoCargaProduto(maiusculo(r.tipoCargaProduto()));
-        e.setLocalSeparacao(maiusculo(r.localSeparacao()));
+        e.setLocalSeparacao(localSeparacao(r));
         e.setNaturezaProduto(maiusculo(r.naturezaProduto()));
+    }
+
+    /**
+     * Regra da casa: produto do departamento de piso/revestimento (CFP_ERP_CODEPTO_PISO,
+     * 13 por padrao) sempre separa no externo geral.
+     */
+    private String localSeparacao(ProdutoErpRequest r) {
+        if (r.codEpto() != null && r.codEpto() == codeptoPiso) {
+            return "EG";
+        }
+        return maiusculo(r.localSeparacao());
     }
 
     private String texto(String v) {
