@@ -296,7 +296,9 @@ public class ProdutoService {
         p.setPesoBruto(r.pesoBruto());
         if (fornecedor.getTipo().isPiso()) {
             p.setM2Caixa(r.m2Caixa());
-            p.setM2Pallet(r.m2Pallet());
+            // 2 casas: este valor vai para o PCPRODUT.MULTIPLOCOMPRAS
+            p.setM2Pallet(r.m2Pallet() == null ? null
+                    : r.m2Pallet().setScale(2, java.math.RoundingMode.HALF_UP));
             p.setQtdEmbalagem(null);
             p.setMetroCaixa(null);
             p.setMetroPallet(null);

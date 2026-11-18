@@ -55,7 +55,8 @@ public record ProdutoRequest(
         @Digits(integer = 8, fraction = 4, message = "m2 por caixa invalido")
         BigDecimal m2Caixa,
 
-        @DecimalMin(value = "0.0001", message = "m2 por pallet deve ser maior que zero")
+        // o valor vai para o WinThor como MULTIPLOCOMPRAS, arredondado em 2 casas no salvamento
+        @DecimalMin(value = "0.01", message = "m2 por pallet deve ser maior que zero")
         @Digits(integer = 8, fraction = 4, message = "m2 por pallet invalido")
         BigDecimal m2Pallet,
 

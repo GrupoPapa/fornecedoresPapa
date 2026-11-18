@@ -105,7 +105,7 @@ public class ProdutoErpService {
                 ? new BigDecimal(p.getQtdEmbalagem()) : p.getM2Caixa());
         e.setQtUnit(BigDecimal.ONE);
         e.setMultiplo(BigDecimal.ONE);
-        e.setMultiploCompras(BigDecimal.ONE);
+        e.setMultiploCompras(multiploCompras(p));
         e.setUnidade("UN");
         e.setUnidadeMaster("CX");
         e.setEmbalagem("UN");
@@ -166,6 +166,18 @@ public class ProdutoErpService {
         e.setTipoCargaProduto(maiusculo(r.tipoCargaProduto()));
         e.setLocalSeparacao(localSeparacao(r));
         e.setNaturezaProduto(maiusculo(r.naturezaProduto()));
+    }
+
+    /**
+     * PCPRODUT.MULTIPLOCOMPRAS vem do m2 por pallet que o fornecedor informou, com
+     * 2 casas decimais. Sem esse valor (fornecedor geral, ou campo em branco), fica 1.
+     */
+    private BigDecimal multiploCompras(Produto p) {
+        BigDecimal m2Pallet = p.getM2Pallet();
+        if (m2Pallet == null || m2Pallet.signum() <= 0) {
+            return BigDecimal.ONE;
+        }
+        return m2Pallet.setScale(2, java.math.RoundingMode.HALF_UP);
     }
 
     /**
