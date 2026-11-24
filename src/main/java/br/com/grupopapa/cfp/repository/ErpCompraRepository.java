@@ -86,20 +86,54 @@ public class ErpCompraRepository {
             "CODPROD, DESCRICAO, EMBALAGEM, UNIDADE, QTUNITCX, CODFAB, "
           + "TO_CHAR(CODAUXILIAR) CODAUXILIAR, CODFORNEC, OBS2";
 
-    /** Produtos ativos do fornecedor (fora de linha e excluidos ficam de fora). */
+    /**
+     * Fornecedores do mesmo grupo no WinThor (codigo -> razao social): o proprio fornecedor, o
+     * principal dele (PCFORNEC.CODFORNECPRINC) e os demais secundarios do mesmo principal.
+     * Produto cadastrado no principal pode ser comprado pelo secundario e vice-versa.
+     * Sempre contem o proprio codigo, mesmo se a consulta falhar.
+     */
+    public Map<Long, String> fornecedoresDoGrupo(Long codFornec) {
+        Map<Long, String> grupo = new LinkedHashMap<>();
+        if (codFornec == null) {
+            return grupo;
+        }
+        grupo.put(codFornec, null);
+        try {
+            jdbc.query("SELECT F.CODFORNEC, F.FORNECEDOR"
+                            + "  FROM PCFORNEC F,"
+                            + "       (SELECT NVL(CODFORNECPRINC, CODFORNEC) PRINC FROM PCFORNEC WHERE CODFORNEC = ?) X"
+                            + " WHERE F.CODFORNEC = X.PRINC OR F.CODFORNECPRINC = X.PRINC"
+                            + " ORDER BY CASE WHEN F.CODFORNEC = X.PRINC THEN 0 ELSE 1 END, F.CODFORNEC",
+                    (org.springframework.jdbc.core.RowCallbackHandler) rs ->
+                            grupo.put(rs.getLong("CODFORNEC"), rs.getString("FORNECEDOR")),
+                    codFornec);
+        } catch (DataAccessException e) {
+            log.warn("Nao foi possivel ler o grupo do fornecedor {} (CODFORNECPRINC): {}",
+                    codFornec, e.getMostSpecificCause().getMessage());
+        }
+        return grupo;
+    }
+
+    /**
+     * Produtos ativos do fornecedor e dos fornecedores do mesmo grupo (principal/secundarios).
+     * Fora de linha e excluidos ficam de fora.
+     */
     public List<ProdutoWinthor> produtosDoFornecedor(Long codFornec) {
         if (codFornec == null) {
             return List.of();
         }
+        List<Long> grupo = new ArrayList<>(fornecedoresDoGrupo(codFornec).keySet());
+        if (grupo.size() > 900) grupo = grupo.subList(0, 900);
+        String marcadores = grupo.stream().map(c -> "?").collect(Collectors.joining(","));
         String base = "SELECT " + COLUNAS_PRODUTO + " FROM " + tabelaProduto
-                + " WHERE CODFORNEC = ? AND NVL(OBS2, ' ') <> 'FL'";
+                + " WHERE CODFORNEC IN (" + marcadores + ") AND NVL(OBS2, ' ') <> 'FL'";
         try {
-            return jdbc.query(base + " AND DTEXCLUSAO IS NULL ORDER BY DESCRICAO", PRODUTO, codFornec);
+            return jdbc.query(base + " AND DTEXCLUSAO IS NULL ORDER BY DESCRICAO", PRODUTO, grupo.toArray());
         } catch (DataAccessException e) {
             // base sem a coluna DTEXCLUSAO: tenta sem o filtro antes de desistir
             log.warn("Consulta de produtos com DTEXCLUSAO falhou ({}); tentando sem o filtro.",
                     e.getMostSpecificCause().getMessage());
-            return jdbc.query(base + " ORDER BY DESCRICAO", PRODUTO, codFornec);
+            return jdbc.query(base + " ORDER BY DESCRICAO", PRODUTO, grupo.toArray());
         }
     }
 

@@ -32,11 +32,14 @@ public record SugestoesSystockResponse(boolean habilitado, String aviso, int dia
     /**
      * @param quantidadeSugerida quantidade que o Systock calculou (o comprador pode ter mudado para {@code quantidade})
      * @param ultimaEntrada      ultima entrada do produto no WinThor (PCMOV), null se nunca entrou
-     * @param foraDoFornecedor   o produto, no WinThor, e de outro fornecedor (o portal vai recusar ao trazer)
+     * @param foraDoFornecedor   o produto, no WinThor, e de um fornecedor fora do grupo (o portal vai recusar)
+     * @param fornecedorProduto  "codigo - nome" do fornecedor do produto no WinThor quando e outro do
+     *                           mesmo grupo (principal ou secundario); null quando e o proprio fornecedor
      */
     public record Item(Integer item, String idProduto, Long codProd, String descricao, String codigoFabrica,
                        String embalagem, BigDecimal quantidadeSugerida, BigDecimal quantidade, BigDecimal preco,
-                       BigDecimal valorTotal, UltimaEntrada ultimaEntrada, boolean foraDoFornecedor) { }
+                       BigDecimal valorTotal, UltimaEntrada ultimaEntrada, boolean foraDoFornecedor,
+                       String fornecedorProduto) { }
 
     /** Ultima entrada (nota de compra) do produto no WinThor, em qualquer filial. */
     public record UltimaEntrada(LocalDate data, BigDecimal valorUnitario, BigDecimal quantidade,

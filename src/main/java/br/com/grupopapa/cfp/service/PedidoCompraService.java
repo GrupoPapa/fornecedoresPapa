@@ -499,10 +499,12 @@ public class PedidoCompraService {
             if (i.codProdErp() != null) codigos.add(i.codProdErp());
         }
         Map<Long, ProdutoWinthor> winthor = Map.of();
+        Set<Long> grupo = Set.of();
         if (!codigos.isEmpty()) {
             if (fornecedor.getCodFornecedorErp() == null) {
                 throw new NegocioException("Fornecedor sem codigo no WinThor: use apenas produtos novos do portal.");
             }
+            grupo = erp.fornecedoresDoGrupo(fornecedor.getCodFornecedorErp()).keySet();
             try {
                 winthor = erp.produtosPorCodigo(codigos);
             } catch (DataAccessException e) {
@@ -522,9 +524,9 @@ public class PedidoCompraService {
                 if (p == null) {
                     throw new NegocioException("Item " + linha + ": produto " + req.codProdErp() + " nao encontrado no WinThor.");
                 }
-                if (!Objects.equals(p.codFornec(), fornecedor.getCodFornecedorErp())) {
+                if (!grupo.contains(p.codFornec())) {
                     throw new NegocioException("Item " + linha + ": o produto " + req.codProdErp()
-                            + " nao pertence a este fornecedor no WinThor.");
+                            + " nao pertence a este fornecedor no WinThor (nem ao fornecedor principal ou aos secundarios dele).");
                 }
                 item.setCodProdErp(p.codProd());
                 item.setDescricao(cortar(nvl(p.descricao(), "Produto " + p.codProd()), 150));
@@ -584,6 +586,7 @@ public class PedidoCompraService {
             }
         }
 
+        Set<Long> grupo = erp.fornecedoresDoGrupo(codFornec).keySet();
         Map<Long, ProdutoWinthor> winthor;
         try {
             winthor = erp.produtosPorCodigo(pedido.getItens().stream()
@@ -611,8 +614,9 @@ public class PedidoCompraService {
                     divergencia = "Produto nao encontrado no WinThor.";
                 } else if (codFornec == null) {
                     divergencia = "Fornecedor sem codigo no WinThor.";
-                } else if (!Objects.equals(p.codFornec(), codFornec)) {
-                    divergencia = "Produto cadastrado no WinThor para outro fornecedor (" + p.codFornec() + ").";
+                } else if (!grupo.contains(p.codFornec())) {
+                    divergencia = "Produto cadastrado no WinThor para outro fornecedor (" + p.codFornec()
+                            + "), fora do grupo deste fornecedor.";
                 } else if (p.foraDeLinha()) {
                     divergencia = "Produto fora de linha no WinThor.";
                 } else if (semTabela.contains(p.codProd())) {

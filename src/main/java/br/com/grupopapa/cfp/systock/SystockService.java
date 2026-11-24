@@ -166,16 +166,25 @@ public class SystockService {
             }
         }
 
+        // grupo de cada fornecedor no WinThor (principal + secundarios)
+        Map<Long, Map<Long, String>> grupos = new HashMap<>();
+        for (Marcado m : escolhidos) {
+            Long f = m.pedido().idFornecedor();
+            if (f != null && !grupos.containsKey(f)) grupos.put(f, erp.fornecedoresDoGrupo(f));
+        }
+
         List<SugestoesSystockResponse.Sugestao> lista = new ArrayList<>();
         for (Marcado m : escolhidos) {
             lista.add(montar(m, produtos, ultimas, importados.get(m.pedido().idPedido()),
-                    fornecedoresPorCod.get(m.pedido().idFornecedor())));
+                    fornecedoresPorCod.get(m.pedido().idFornecedor()),
+                    grupos.getOrDefault(m.pedido().idFornecedor(), Map.of())));
         }
         return new SugestoesSystockResponse(true, aviso, diasFinalizados, lista);
     }
 
     private SugestoesSystockResponse.Sugestao montar(Marcado m, Map<Long, ProdutoWinthor> produtos,
-                                                     Map<Long, UltimaCompra> ultimas, PedidoCompra importado, Fornecedor fornecedorPortal) {
+                                                     Map<Long, UltimaCompra> ultimas, PedidoCompra importado, Fornecedor fornecedorPortal,
+                                                     Map<Long, String> grupo) {
         SystockPedido sp = m.pedido();
         List<SugestoesSystockResponse.Item> itens = new ArrayList<>();
         BigDecimal total = BigDecimal.ZERO;
@@ -186,12 +195,19 @@ public class SystockService {
                     ? p.quantidade().multiply(p.preco()).setScale(2, RoundingMode.HALF_UP) : null;
             if (valor != null) total = total.add(valor);
             UltimaCompra u = cod == null ? null : ultimas.get(cod);
+            boolean outroDoGrupo = w != null && w.codFornec() != null && sp.idFornecedor() != null
+                    && !Objects.equals(w.codFornec(), sp.idFornecedor()) && grupo.containsKey(w.codFornec());
+            String fornecedorProduto = outroDoGrupo
+                    ? w.codFornec() + (grupo.get(w.codFornec()) == null ? "" : " - " + grupo.get(w.codFornec()).trim())
+                    : null;
             itens.add(new SugestoesSystockResponse.Item(p.item(), p.idProduto(), cod,
                     w == null ? null : w.descricao(), w == null ? null : w.codFab(), w == null ? null : w.embalagem(),
                     p.quantidadeSugerida(), p.quantidade(), p.preco(), valor,
                     u == null ? null : new SugestoesSystockResponse.UltimaEntrada(u.data(), u.precoUnitario(),
                             u.quantidade(), u.numNota(), u.codFilial(), u.codFornec(), u.fornecedor()),
-                    w != null && sp.idFornecedor() != null && !Objects.equals(w.codFornec(), sp.idFornecedor())));
+                    w != null && sp.idFornecedor() != null && !Objects.equals(w.codFornec(), sp.idFornecedor())
+                            && !outroDoGrupo,
+                    fornecedorProduto));
         }
         return new SugestoesSystockResponse.Sugestao(
                 sp.idPedido(), m.statusCodigo(), STATUS.getOrDefault(m.statusCodigo(), sp.status()), sp.status(),
