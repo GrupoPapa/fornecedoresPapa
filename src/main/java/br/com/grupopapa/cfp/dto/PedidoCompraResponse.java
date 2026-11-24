@@ -30,7 +30,8 @@ public record PedidoCompraResponse(
         String statusIntegracao,
         String mensagemErro,
         OffsetDateTime dataIntegracao,
-        List<Item> itens) {
+        List<Item> itens,
+        Long systockId) {
 
     public record Item(
             Long id, Integer seq, Long codProdErp, Long produtoId, StatusProduto produtoStatus,
@@ -65,6 +66,6 @@ public record PedidoCompraResponse(
                 p.getObservacao(), p.getParecer(), p.getValorTotal(), qtd,
                 p.isEditavelPeloFornecedor(), p.getDataCriacao(), p.getDataEnvio(), p.getDataAnalise(),
                 p.getNumSugestaoErp(), p.getStatusIntegracao(), p.getMensagemErro(), p.getDataIntegracao(),
-                itens);
+                itens, p.getSystockId());
     }
 }

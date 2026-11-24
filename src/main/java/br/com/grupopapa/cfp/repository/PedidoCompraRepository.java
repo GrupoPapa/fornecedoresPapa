@@ -65,5 +65,14 @@ public interface PedidoCompraRepository extends JpaRepository<PedidoCompra, Long
 
     long countByStatus(StatusPedidoCompra status);
 
+    /** Pedidos do portal (nao cancelados) que vieram destas sugestoes do Systock. */
+    @Query("""
+           select p from PedidoCompra p
+           where p.systockId in :ids
+             and p.status <> :cancelado
+           """)
+    List<PedidoCompra> importadosDoSystock(@Param("ids") java.util.Collection<Long> ids,
+                                           @Param("cancelado") StatusPedidoCompra cancelado);
+
     long countByFornecedorIdAndStatus(Long fornecedorId, StatusPedidoCompra status);
 }

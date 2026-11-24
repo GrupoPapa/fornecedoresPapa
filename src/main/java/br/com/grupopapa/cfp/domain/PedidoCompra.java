@@ -73,6 +73,10 @@ public class PedidoCompra {
     @Column(name = "NUMSUGESTAO_ERP")
     private Long numSugestaoErp;
 
+    /** Sugestao de compra do Systock (id_pedido) que deu origem a este pedido. */
+    @Column(name = "SYSTOCK_ID")
+    private Long systockId;
+
     @Column(name = "STATUS_INTEGRACAO", nullable = false, length = 20)
     private String statusIntegracao = "PENDENTE";
 
@@ -163,6 +167,8 @@ public class PedidoCompra {
     public void setUsuarioCriacao(Usuario usuarioCriacao) { this.usuarioCriacao = usuarioCriacao; }
     public Usuario getUsuarioAnalise() { return usuarioAnalise; }
     public void setUsuarioAnalise(Usuario usuarioAnalise) { this.usuarioAnalise = usuarioAnalise; }
+    public Long getSystockId() { return systockId; }
+    public void setSystockId(Long systockId) { this.systockId = systockId; }
     public Long getNumSugestaoErp() { return numSugestaoErp; }
     public void setNumSugestaoErp(Long numSugestaoErp) { this.numSugestaoErp = numSugestaoErp; }
     public String getStatusIntegracao() { return statusIntegracao; }

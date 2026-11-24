@@ -137,6 +137,16 @@ app:
   far:
     anexo-max-mb: ${CFP_FAR_ANEXO_MAX_MB:5}
     max-anexos: ${CFP_FAR_MAX_ANEXOS:10}
+  # Systock: sugestoes de compra lidas da API externa (somente leitura).
+  # Sem token a aba "Sugestoes do Systock" fica desligada. NAO coloque o token aqui:
+  # defina CFP_SYSTOCK_TOKEN no ambiente (Portainer / docker-compose).
+  systock:
+    url: ${CFP_SYSTOCK_URL:http://192.168.254.245:8000/api/externa}
+    token: ${CFP_SYSTOCK_TOKEN:c5920479e42b07823cc37304992f2c09b767b34ae4c6609d}
+    timeout-segundos: ${CFP_SYSTOCK_TIMEOUT:20}
+    cache-segundos: ${CFP_SYSTOCK_CACHE:60}
+    # pedidos FINALIZADOS mais antigos que isso nao aparecem
+    dias-finalizados: ${CFP_SYSTOCK_DIAS_FINALIZADOS:90}
   validacao:
     # true  = exige um GTIN real (confere o digito verificador do codigo de barras)
     # false = aceita qualquer numero com 8, 12, 13 ou 14 digitos (util para testes)

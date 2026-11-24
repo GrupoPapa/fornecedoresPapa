@@ -217,6 +217,33 @@ public class ErpCompraRepository {
         return jdbc.query(sql, this::ultimaCompra, codProd, limite);
     }
 
+    /**
+     * Ultima entrada (CODOPER = 'E') de cada produto, em qualquer filial e de qualquer fornecedor.
+     * Usado na tela de sugestoes do Systock para comparar o preco sugerido com o ultimo pago.
+     */
+    public Map<Long, UltimaCompra> ultimaCompraPorProduto(Collection<Long> codigos) {
+        List<Long> lista = codigos.stream().filter(Objects::nonNull).distinct().toList();
+        Map<Long, UltimaCompra> resultado = new HashMap<>();
+        for (int i = 0; i < lista.size(); i += 500) {
+            List<Long> parte = lista.subList(i, Math.min(i + 500, lista.size()));
+            String marcadores = parte.stream().map(c -> "?").collect(Collectors.joining(","));
+            String sql = "SELECT * FROM ("
+                    + " SELECT M.CODPROD, M.DTMOV, M.NUMNOTA, M.CODFILIAL, M.CODFORNEC, F.FORNECEDOR, M.QT, M.PUNIT,"
+                    + "        ROW_NUMBER() OVER (PARTITION BY M.CODPROD ORDER BY M.DTMOV DESC, M.NUMNOTA DESC) RN"
+                    + "   FROM " + tabelaMovimento + " M, PCFORNEC F"
+                    + "  WHERE M.CODFORNEC = F.CODFORNEC(+)"
+                    + "    AND M.CODPROD IN (" + marcadores + ")"
+                    + "    AND M.CODOPER = 'E'"
+                    + "    AND M.DTCANCEL IS NULL"
+                    + "    AND NVL(M.PUNIT, 0) > 0"
+                    + ") WHERE RN = 1";
+            List<Map.Entry<Long, UltimaCompra>> linhas = jdbc.query(sql,
+                    (rs, n) -> Map.entry(rs.getLong("CODPROD"), ultimaCompra(rs, n)), parte.toArray());
+            linhas.forEach(e -> resultado.put(e.getKey(), e.getValue()));
+        }
+        return resultado;
+    }
+
     private UltimaCompra ultimaCompra(ResultSet rs, int i) throws SQLException {
         java.sql.Date data = rs.getDate("DTMOV");
         return new UltimaCompra(
