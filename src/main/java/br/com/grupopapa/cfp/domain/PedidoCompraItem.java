@@ -58,6 +58,17 @@ public class PedidoCompraItem {
     @Column(name = "ULTIMO_PRECO", precision = 18, scale = 6)
     private BigDecimal ultimoPreco;
 
+    /** Quantidade sugerida pelo Systock (so em pedido trazido do Systock). */
+    @Column(name = "QTDE_SUGERIDA", precision = 18, scale = 6)
+    private BigDecimal qtdeSugerida;
+
+    /** Quantidade e preco que estavam na sugestao do Systock quando o pedido foi trazido. */
+    @Column(name = "QTDE_SYSTOCK", precision = 18, scale = 6)
+    private BigDecimal qtdeSystock;
+
+    @Column(name = "PRECO_SYSTOCK", precision = 18, scale = 6)
+    private BigDecimal precoSystock;
+
     public BigDecimal getValorTotal() {
         if (quantidade == null || precoUnitario == null) {
             return BigDecimal.ZERO;
@@ -96,4 +107,18 @@ public class PedidoCompraItem {
     public void setDivergencia(String divergencia) { this.divergencia = divergencia; }
     public BigDecimal getUltimoPreco() { return ultimoPreco; }
     public void setUltimoPreco(BigDecimal ultimoPreco) { this.ultimoPreco = ultimoPreco; }
+    public BigDecimal getQtdeSugerida() { return qtdeSugerida; }
+    public void setQtdeSugerida(BigDecimal qtdeSugerida) { this.qtdeSugerida = qtdeSugerida; }
+    public BigDecimal getQtdeSystock() { return qtdeSystock; }
+    public void setQtdeSystock(BigDecimal qtdeSystock) { this.qtdeSystock = qtdeSystock; }
+    public BigDecimal getPrecoSystock() { return precoSystock; }
+    public void setPrecoSystock(BigDecimal precoSystock) { this.precoSystock = precoSystock; }
+
+    /** Copia os dados da sugestao do Systock (usado ao reeditar o pedido: os itens sao recriados). */
+    public void copiarSystockDe(PedidoCompraItem outro) {
+        if (outro == null) return;
+        this.qtdeSugerida = outro.qtdeSugerida;
+        this.qtdeSystock = outro.qtdeSystock;
+        this.precoSystock = outro.precoSystock;
+    }
 }

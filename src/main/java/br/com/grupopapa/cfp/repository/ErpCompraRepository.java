@@ -251,28 +251,58 @@ public class ErpCompraRepository {
         return jdbc.query(sql, this::ultimaCompra, codProd, limite);
     }
 
-    /**
-     * Ultima entrada (CODOPER = 'E') de cada produto, em qualquer filial e de qualquer fornecedor.
-     * Usado na tela de sugestoes do Systock para comparar o preco sugerido com o ultimo pago.
-     */
+    /** Ultima entrada (CODOPER = 'E') de cada produto, em qualquer filial e de qualquer fornecedor. */
     public Map<Long, UltimaCompra> ultimaCompraPorProduto(Collection<Long> codigos) {
+        return ultimaCompraPorProduto(codigos, null, null);
+    }
+
+    /**
+     * Ultima entrada (CODOPER = 'E') de cada produto, em qualquer filial, vinda do fornecedor
+     * informado ou, se ele nunca entregou o produto, de outro fornecedor do grupo dele
+     * (principal/secundarios). Mesmo criterio do Systock: entrada de outro fornecedor nao conta.
+     * Com codFornec nulo, vale qualquer fornecedor.
+     */
+    public Map<Long, UltimaCompra> ultimaCompraPorProduto(Collection<Long> codigos, Long codFornec,
+                                                         Collection<Long> grupo) {
+        List<Long> fornecs = new ArrayList<>();
+        if (codFornec != null) {
+            fornecs.add(codFornec);
+            if (grupo != null) grupo.stream().filter(Objects::nonNull).filter(f -> !f.equals(codFornec))
+                    .limit(400).forEach(fornecs::add);
+        }
         List<Long> lista = codigos.stream().filter(Objects::nonNull).distinct().toList();
         Map<Long, UltimaCompra> resultado = new HashMap<>();
         for (int i = 0; i < lista.size(); i += 500) {
             List<Long> parte = lista.subList(i, Math.min(i + 500, lista.size()));
             String marcadores = parte.stream().map(c -> "?").collect(Collectors.joining(","));
+            List<Object> params = new ArrayList<>();
+            String prioridade = "";
+            String filtroFornec = "";
+            if (!fornecs.isEmpty()) {
+                prioridade = "CASE WHEN M.CODFORNEC = ? THEN 0 ELSE 1 END, ";
+                params.add(fornecs.get(0));
+                filtroFornec = "    AND M.CODFORNEC IN (" + fornecs.stream().map(c -> "?").collect(Collectors.joining(",")) + ")";
+            }
+            params.addAll(parte);
+            params.addAll(fornecs);
             String sql = "SELECT * FROM ("
-                    + " SELECT M.CODPROD, M.DTMOV, M.NUMNOTA, M.CODFILIAL, M.CODFORNEC, F.FORNECEDOR, M.QT, M.PUNIT,"
-                    + "        ROW_NUMBER() OVER (PARTITION BY M.CODPROD ORDER BY M.DTMOV DESC, M.NUMNOTA DESC) RN"
-                    + "   FROM " + tabelaMovimento + " M, PCFORNEC F"
+                    // data mostrada = emissao do pedido de compra da entrada (como o Systock
+                    // mostra a "ultima compra"); sem pedido vinculado, a data da entrada
+                    + " SELECT M.CODPROD, NVL(C.DTEMISSAO, M.DTMOV) DTMOV, M.NUMNOTA, M.CODFILIAL, M.CODFORNEC,"
+                    + "        F.FORNECEDOR, M.QT, M.PUNIT,"
+                    + "        ROW_NUMBER() OVER (PARTITION BY M.CODPROD ORDER BY " + prioridade
+                    + "M.DTMOV DESC, M.NUMNOTA DESC) RN"
+                    + "   FROM " + tabelaMovimento + " M, PCFORNEC F, PCPEDIDO C"
                     + "  WHERE M.CODFORNEC = F.CODFORNEC(+)"
+                    + "    AND M.NUMPED = C.NUMPED(+)"
                     + "    AND M.CODPROD IN (" + marcadores + ")"
                     + "    AND M.CODOPER = 'E'"
                     + "    AND M.DTCANCEL IS NULL"
                     + "    AND NVL(M.PUNIT, 0) > 0"
+                    + filtroFornec
                     + ") WHERE RN = 1";
             List<Map.Entry<Long, UltimaCompra>> linhas = jdbc.query(sql,
-                    (rs, n) -> Map.entry(rs.getLong("CODPROD"), ultimaCompra(rs, n)), parte.toArray());
+                    (rs, n) -> Map.entry(rs.getLong("CODPROD"), ultimaCompra(rs, n)), params.toArray());
             linhas.forEach(e -> resultado.put(e.getKey(), e.getValue()));
         }
         return resultado;

@@ -83,12 +83,12 @@ public class PedidoCompraController {
                                       @RequestParam(required = false) Long fornecedorId) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         PedidoCompra criado = service.criar(request, logado, fornecedorId);
-        return PedidoCompraResponse.completo(service.buscar(criado.getId(), logado));
+        return service.resposta(service.buscar(criado.getId(), logado));
     }
 
     @GetMapping("/{id}")
     public PedidoCompraResponse buscar(@PathVariable Long id) {
-        return PedidoCompraResponse.completo(service.buscar(id, UsuarioLogado.obter()));
+        return service.resposta(service.buscar(id, UsuarioLogado.obter()));
     }
 
     @PutMapping("/{id}")
@@ -96,7 +96,7 @@ public class PedidoCompraController {
     public PedidoCompraResponse atualizar(@PathVariable Long id, @RequestBody @Valid PedidoCompraRequest request) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         service.atualizar(id, request, logado);
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 
     @PostMapping("/{id}/enviar")
@@ -104,7 +104,7 @@ public class PedidoCompraController {
     public PedidoCompraResponse enviar(@PathVariable Long id) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         service.enviar(id, logado);
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 
     @PostMapping("/{id}/cancelar")
@@ -112,7 +112,7 @@ public class PedidoCompraController {
                                          @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         service.cancelar(id, request == null ? null : request.parecer(), logado);
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 
     @GetMapping("/{id}/historico")

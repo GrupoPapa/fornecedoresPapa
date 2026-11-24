@@ -2,6 +2,7 @@ package br.com.grupopapa.cfp.systock;
 
 import br.com.grupopapa.cfp.domain.Fornecedor;
 import br.com.grupopapa.cfp.domain.PedidoCompra;
+import br.com.grupopapa.cfp.domain.PedidoCompraItem;
 import br.com.grupopapa.cfp.domain.StatusPedidoCompra;
 import br.com.grupopapa.cfp.domain.TipoPedidoCompra;
 import br.com.grupopapa.cfp.dto.PedidoCompraRequest;
@@ -138,10 +139,29 @@ public class SystockService {
                 aviso = "As descricoes dos produtos nao puderam ser carregadas do WinThor agora.";
             }
         }
-        Map<Long, UltimaCompra> ultimas = Map.of();
-        if (!codigos.isEmpty() && codigos.size() <= 5000) {
+        // grupo de cada fornecedor no WinThor (principal + secundarios)
+        Map<Long, Map<Long, String>> grupos = new HashMap<>();
+        Map<Long, Set<Long>> codigosPorFornecedor = new HashMap<>();
+        for (Marcado m : escolhidos) {
+            Long f = m.pedido().idFornecedor();
+            if (f == null) continue;
+            if (!grupos.containsKey(f)) grupos.put(f, erp.fornecedoresDoGrupo(f));
+            Set<Long> cods = codigosPorFornecedor.computeIfAbsent(f, k -> new HashSet<>());
+            m.pedido().produtosOuVazio().forEach(p -> {
+                Long c = numero(p.idProduto());
+                if (c != null) cods.add(c);
+            });
+        }
+
+        // ultima entrada de cada produto vinda do fornecedor da sugestao (ou do grupo dele)
+        Map<Long, Map<Long, UltimaCompra>> ultimasPorFornecedor = new HashMap<>();
+        if (codigos.size() <= 5000) {
             try {
-                ultimas = erp.ultimaCompraPorProduto(codigos);
+                for (Map.Entry<Long, Set<Long>> e : codigosPorFornecedor.entrySet()) {
+                    if (e.getValue().isEmpty()) continue;
+                    ultimasPorFornecedor.put(e.getKey(), erp.ultimaCompraPorProduto(e.getValue(), e.getKey(),
+                            grupos.getOrDefault(e.getKey(), Map.of()).keySet()));
+                }
             } catch (DataAccessException e) {
                 log.warn("Falha ao buscar ultimas entradas no WinThor: {}", e.getMostSpecificCause().getMessage());
                 if (aviso == null) aviso = "O valor da ultima entrada nao pode ser carregado do WinThor agora.";
@@ -166,16 +186,11 @@ public class SystockService {
             }
         }
 
-        // grupo de cada fornecedor no WinThor (principal + secundarios)
-        Map<Long, Map<Long, String>> grupos = new HashMap<>();
-        for (Marcado m : escolhidos) {
-            Long f = m.pedido().idFornecedor();
-            if (f != null && !grupos.containsKey(f)) grupos.put(f, erp.fornecedoresDoGrupo(f));
-        }
-
         List<SugestoesSystockResponse.Sugestao> lista = new ArrayList<>();
         for (Marcado m : escolhidos) {
-            lista.add(montar(m, produtos, ultimas, importados.get(m.pedido().idPedido()),
+            lista.add(montar(m, produtos,
+                    ultimasPorFornecedor.getOrDefault(m.pedido().idFornecedor(), Map.of()),
+                    importados.get(m.pedido().idPedido()),
                     fornecedoresPorCod.get(m.pedido().idFornecedor()),
                     grupos.getOrDefault(m.pedido().idFornecedor(), Map.of())));
         }
@@ -301,6 +316,23 @@ public class SystockService {
                 new PedidoCompraRequest(codFilial, TipoPedidoCompra.NORMAL, null, observacao, itens),
                 logado, fornecedor.getId());
         pedido.setSystockId(idSystock);
+        // guarda nos itens o que veio do Systock (quantidade sugerida, quantidade e preco originais)
+        Map<Long, BigDecimal[]> origem = new HashMap<>();
+        for (SystockPedido.Produto p : sp.produtosOuVazio()) {
+            Long cod = numero(p.idProduto());
+            if (cod == null) continue;
+            BigDecimal[] o = origem.computeIfAbsent(cod, c -> new BigDecimal[]{null, null, p.preco()});
+            if (p.quantidadeSugerida() != null) o[0] = o[0] == null ? p.quantidadeSugerida() : o[0].add(p.quantidadeSugerida());
+            if (p.quantidade() != null) o[1] = o[1] == null ? p.quantidade() : o[1].add(p.quantidade());
+        }
+        for (PedidoCompraItem item : pedido.getItens()) {
+            BigDecimal[] o = item.getCodProdErp() == null ? null : origem.get(item.getCodProdErp());
+            if (o != null) {
+                item.setQtdeSugerida(o[0]);
+                item.setQtdeSystock(o[1]);
+                item.setPrecoSystock(o[2]);
+            }
+        }
         return pedidoRepository.save(pedido);
     }
 

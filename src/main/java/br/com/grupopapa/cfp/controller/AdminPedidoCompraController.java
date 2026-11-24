@@ -39,7 +39,7 @@ public class AdminPedidoCompraController {
                                                     @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         service.resolverDivergencia(id, request, logado);
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 
     @PostMapping("/{id}/aprovar")
@@ -51,7 +51,7 @@ public class AdminPedidoCompraController {
         if (sugestaoService.isHabilitada()) {
             sugestaoService.gerar(id, logado);
         }
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 
     @PostMapping("/{id}/gerar-sugestao")
@@ -59,7 +59,7 @@ public class AdminPedidoCompraController {
     public PedidoCompraResponse gerarSugestao(@PathVariable Long id) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         PedidoCompra p = sugestaoService.gerar(id, logado);
-        return PedidoCompraResponse.completo(service.buscar(p.getId(), logado));
+        return service.resposta(service.buscar(p.getId(), logado));
     }
 
     @PostMapping("/{id}/revisar")
@@ -68,7 +68,7 @@ public class AdminPedidoCompraController {
                                         @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         service.revisar(id, request == null ? null : request.parecer(), logado);
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 
     @PostMapping("/{id}/reprovar")
@@ -77,7 +77,7 @@ public class AdminPedidoCompraController {
                                          @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         service.reprovar(id, request == null ? null : request.parecer(), logado);
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 
     @PostMapping("/{id}/voltar-analise")
@@ -85,6 +85,6 @@ public class AdminPedidoCompraController {
     public PedidoCompraResponse voltarAnalise(@PathVariable Long id) {
         UsuarioAutenticado logado = UsuarioLogado.obter();
         service.voltarParaAnalise(id, logado);
-        return PedidoCompraResponse.completo(service.buscar(id, logado));
+        return service.resposta(service.buscar(id, logado));
     }
 }

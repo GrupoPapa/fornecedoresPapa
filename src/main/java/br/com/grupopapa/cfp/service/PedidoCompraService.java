@@ -48,6 +48,7 @@ public class PedidoCompraService {
     private final ErpCompraRepository erp;
     private final int qtdHistoricoPrecos;
     private final BigDecimal alertaPercentual;
+    private final br.com.grupopapa.cfp.systock.SystockClient systock;
 
     public PedidoCompraService(PedidoCompraRepository repository,
                                PedidoCompraHistoricoRepository historicoRepository,
@@ -57,6 +58,7 @@ public class PedidoCompraService {
                                ProdutoNovoRepository produtoNovoRepository,
                                ProdutoErpRepository produtoErpRepository,
                                ErpCompraRepository erp,
+                               br.com.grupopapa.cfp.systock.SystockClient systock,
                                @Value("${app.erp.compra.qtd-historico-precos:5}") int qtdHistoricoPrecos,
                                @Value("${app.erp.compra.alerta-percentual:10}") BigDecimal alertaPercentual) {
         this.repository = repository;
@@ -67,6 +69,7 @@ public class PedidoCompraService {
         this.produtoNovoRepository = produtoNovoRepository;
         this.produtoErpRepository = produtoErpRepository;
         this.erp = erp;
+        this.systock = systock;
         this.qtdHistoricoPrecos = Math.max(1, Math.min(qtdHistoricoPrecos, 20));
         this.alertaPercentual = alertaPercentual == null ? BigDecimal.TEN : alertaPercentual.abs();
     }
@@ -87,6 +90,96 @@ public class PedidoCompraService {
             throw new RecursoNaoEncontradoException("Pedido de compra nao encontrado.");
         }
         return pedido;
+    }
+
+    /**
+     * Pedido completo para a tela: alem do que esta gravado, le no WinThor a ultima entrada de
+     * cada produto e, quando o produto e de outro fornecedor do grupo (principal/secundario),
+     * qual e. Se o WinThor nao responder, devolve o pedido sem esses dados.
+     */
+    @Transactional(readOnly = true)
+    public br.com.grupopapa.cfp.dto.PedidoCompraResponse resposta(PedidoCompra pedido) {
+        List<Long> codigos = pedido.getItens().stream()
+                .map(PedidoCompraItem::getCodProdErp).filter(Objects::nonNull).distinct().toList();
+        if (codigos.isEmpty()) {
+            return br.com.grupopapa.cfp.dto.PedidoCompraResponse.completo(pedido);
+        }
+        Map<Long, br.com.grupopapa.cfp.dto.PedidoCompraResponse.UltimaEntrada> ultimas = new HashMap<>();
+        Map<Long, String> fornecedorProduto = new HashMap<>();
+        try {
+            Long fornecErp = pedido.getFornecedor().getCodFornecedorErp();
+            erp.ultimaCompraPorProduto(codigos, fornecErp,
+                    fornecErp == null ? null : erp.fornecedoresDoGrupo(fornecErp).keySet()).forEach((cod, u) -> ultimas.put(cod,
+                    new br.com.grupopapa.cfp.dto.PedidoCompraResponse.UltimaEntrada(u.data(), u.precoUnitario(),
+                            u.quantidade(), u.numNota(), u.codFilial(), u.codFornec(), u.fornecedor())));
+        } catch (DataAccessException e) {
+            log.warn("Sem ultima entrada do WinThor para o pedido {}: {}", pedido.getNumero(),
+                    e.getMostSpecificCause().getMessage());
+        }
+        Long codFornec = pedido.getFornecedor().getCodFornecedorErp();
+        if (codFornec != null) {
+            try {
+                Map<Long, String> grupo = erp.fornecedoresDoGrupo(codFornec);
+                if (grupo.size() > 1) {
+                    erp.produtosPorCodigo(codigos).forEach((cod, p) -> {
+                        if (p.codFornec() != null && !p.codFornec().equals(codFornec) && grupo.containsKey(p.codFornec())) {
+                            String nome = grupo.get(p.codFornec());
+                            fornecedorProduto.put(cod, p.codFornec() + (nome == null ? "" : " - " + nome.trim()));
+                        }
+                    });
+                }
+            } catch (DataAccessException e) {
+                log.warn("Sem fornecedor do grupo para o pedido {}: {}", pedido.getNumero(),
+                        e.getMostSpecificCause().getMessage());
+            }
+        }
+        return br.com.grupopapa.cfp.dto.PedidoCompraResponse.completo(pedido,
+                new br.com.grupopapa.cfp.dto.PedidoCompraResponse.Extras(ultimas, fornecedorProduto,
+                        faltaDadosSystock(pedido) ? dadosSystock(pedido.getSystockId()) : Map.of()));
+    }
+
+    /** Pedido trazido do Systock com itens da sugestao sem a quantidade sugerida gravada (trazido antes do script 20). */
+    private static boolean faltaDadosSystock(PedidoCompra pedido) {
+        return pedido.getSystockId() != null && pedido.getItens().stream()
+                .anyMatch(i -> i.getCodProdErp() != null && i.getQtdeSugerida() == null && i.getQtdeSystock() == null);
+    }
+
+    /**
+     * Quantidade sugerida, quantidade e preco de cada produto na sugestao do Systock
+     * (codProd -> [sugerida, quantidade, preco]). Vazio se o Systock nao responder.
+     */
+    private Map<Long, BigDecimal[]> dadosSystock(Long systockId) {
+        if (systockId == null || !systock.isHabilitado()) {
+            return Map.of();
+        }
+        try {
+            Map<Long, BigDecimal[]> origem = new HashMap<>();
+            systock.pedido(systockId).ifPresent(sp -> sp.produtosOuVazio().forEach(p -> {
+                String id = p.idProduto() == null ? "" : p.idProduto().trim();
+                if (!id.matches("\\d{1,15}")) return;
+                BigDecimal[] o = origem.computeIfAbsent(Long.valueOf(id), c -> new BigDecimal[]{null, null, p.preco()});
+                if (p.quantidadeSugerida() != null) o[0] = o[0] == null ? p.quantidadeSugerida() : o[0].add(p.quantidadeSugerida());
+                if (p.quantidade() != null) o[1] = o[1] == null ? p.quantidade() : o[1].add(p.quantidade());
+            }));
+            return origem;
+        } catch (RuntimeException e) {
+            log.warn("Nao foi possivel ler a sugestao {} no Systock: {}", systockId, e.getMessage());
+            return Map.of();
+        }
+    }
+
+    /** Grava nos itens os dados da sugestao do Systock que estiverem faltando. */
+    private void completarDadosSystock(PedidoCompra pedido) {
+        if (!faltaDadosSystock(pedido)) return;
+        Map<Long, BigDecimal[]> origem = dadosSystock(pedido.getSystockId());
+        for (PedidoCompraItem item : pedido.getItens()) {
+            BigDecimal[] o = item.getCodProdErp() == null ? null : origem.get(item.getCodProdErp());
+            if (o != null && item.getQtdeSugerida() == null && item.getQtdeSystock() == null) {
+                item.setQtdeSugerida(o[0]);
+                item.setQtdeSystock(o[1]);
+                item.setPrecoSystock(o[2]);
+            }
+        }
     }
 
     @Transactional(readOnly = true)
@@ -177,6 +270,7 @@ public class PedidoCompraService {
             throw new NegocioException("O pedido " + pedido.getNumero()
                     + " esta " + rotulo(pedido.getStatus()) + " e nao pode mais ser alterado.");
         }
+        completarDadosSystock(pedido);
         aplicar(pedido, request);
         return repository.save(pedido);
     }
@@ -512,6 +606,13 @@ public class PedidoCompraService {
             }
         }
 
+        // os itens sao recriados a cada gravacao: guarda os dados da sugestao do Systock
+        Map<String, PedidoCompraItem> anteriores = new HashMap<>();
+        for (PedidoCompraItem a : pedido.getItens()) {
+            anteriores.put(a.getCodProdErp() != null ? "W" + a.getCodProdErp()
+                    : "P" + (a.getProduto() == null ? null : a.getProduto().getId()), a);
+        }
+
         Set<String> vistos = new HashSet<>();
         List<PedidoCompraItem> novos = new ArrayList<>();
         int linha = 0;
@@ -553,6 +654,7 @@ public class PedidoCompraService {
                 throw new NegocioException("O produto " + item.getDescricao()
                         + " aparece mais de uma vez. Some as quantidades numa linha so.");
             }
+            item.copiarSystockDe(anteriores.get(chave));
             item.setQuantidade(req.quantidade());
             item.setPrecoUnitario(req.precoUnitario());
             item.setObservacao(req.observacao() == null || req.observacao().isBlank() ? null : req.observacao().trim());
