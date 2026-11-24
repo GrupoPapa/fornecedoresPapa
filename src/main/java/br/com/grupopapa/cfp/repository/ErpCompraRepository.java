@@ -258,9 +258,9 @@ public class ErpCompraRepository {
 
     /**
      * Ultima entrada (CODOPER = 'E') de cada produto, em qualquer filial, vinda do fornecedor
-     * informado ou, se ele nunca entregou o produto, de outro fornecedor do grupo dele
-     * (principal/secundarios). Mesmo criterio do Systock: entrada de outro fornecedor nao conta.
-     * Com codFornec nulo, vale qualquer fornecedor.
+     * informado ou de qualquer fornecedor do grupo dele (principal/secundarios) - a mais recente
+     * entre eles, sem preferencia. Mesmo criterio do Systock ("ultima compra"): entrada de
+     * fornecedor de fora do grupo nao conta. Com codFornec nulo, vale qualquer fornecedor.
      */
     public Map<Long, UltimaCompra> ultimaCompraPorProduto(Collection<Long> codigos, Long codFornec,
                                                          Collection<Long> grupo) {
@@ -276,11 +276,8 @@ public class ErpCompraRepository {
             List<Long> parte = lista.subList(i, Math.min(i + 500, lista.size()));
             String marcadores = parte.stream().map(c -> "?").collect(Collectors.joining(","));
             List<Object> params = new ArrayList<>();
-            String prioridade = "";
             String filtroFornec = "";
             if (!fornecs.isEmpty()) {
-                prioridade = "CASE WHEN M.CODFORNEC = ? THEN 0 ELSE 1 END, ";
-                params.add(fornecs.get(0));
                 filtroFornec = "    AND M.CODFORNEC IN (" + fornecs.stream().map(c -> "?").collect(Collectors.joining(",")) + ")";
             }
             params.addAll(parte);
@@ -290,8 +287,7 @@ public class ErpCompraRepository {
                     // mostra a "ultima compra"); sem pedido vinculado, a data da entrada
                     + " SELECT M.CODPROD, NVL(C.DTEMISSAO, M.DTMOV) DTMOV, M.NUMNOTA, M.CODFILIAL, M.CODFORNEC,"
                     + "        F.FORNECEDOR, M.QT, M.PUNIT,"
-                    + "        ROW_NUMBER() OVER (PARTITION BY M.CODPROD ORDER BY " + prioridade
-                    + "M.DTMOV DESC, M.NUMNOTA DESC) RN"
+                    + "        ROW_NUMBER() OVER (PARTITION BY M.CODPROD ORDER BY M.DTMOV DESC, M.NUMNOTA DESC) RN"
                     + "   FROM " + tabelaMovimento + " M, PCFORNEC F, PCPEDIDO C"
                     + "  WHERE M.CODFORNEC = F.CODFORNEC(+)"
                     + "    AND M.NUMPED = C.NUMPED(+)"
