@@ -94,7 +94,10 @@ app:
       # false (padrao) = aprova no portal, mas nao grava a sugestao no WinThor
       gerar-sugestao: ${CFP_ERP_SUGESTAO:true}
       # filiais que podem receber pedido (ex.: 1,2,6). Em branco = todas da PCFILIAL
-      filiais: ${CFP_ERP_COMPRA_FILIAIS:}
+      filiais: ${CFP_ERP_COMPRA_FILIAIS:2,6}
+      # filial que ja vem marcada no pedido novo e prazo da previsao de entrega (hoje + N dias)
+      filial-padrao: ${CFP_ERP_COMPRA_FILIAL_PADRAO:6}
+      prazo-entrega-dias: ${CFP_ERP_COMPRA_PRAZO_DIAS:15}
       tabela-sugestao: ${CFP_ERP_TABELA_SUGESTAO:PCSUGESTAOCOMPRAC}
       tabela-sugestao-item: ${CFP_ERP_TABELA_SUGESTAO_ITEM:PCSUGESTAOCOMPRAI}
       # sequence do NUMSUGESTAO. Em branco = trava a tabela e usa MAX(NUMSUGESTAO) + 1.

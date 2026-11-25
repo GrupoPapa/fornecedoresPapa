@@ -84,9 +84,14 @@ public class ErpSugestaoWriter {
         });
     }
 
-    /** OBS do item (200): leva o numero do pedido do portal para rastrear na 220. */
+    /**
+     * OBS do item (200), que aparece na coluna "Obs." da importacao da 220 - mesmo padrao do
+     * Systock ("Sugestao de Compra Gerado pelo Systock."), com o numero do pedido do portal, a
+     * sugestao Systock de origem (se houver) e a observacao que o fornecedor deu ao item.
+     */
     private String obs(PedidoCompra pedido, PedidoCompraItem item) {
-        String texto = "Portal " + pedido.getNumero()
+        String texto = "Sugestao de Compra Gerado pelo Portal do Fornecedor. Pedido " + pedido.getNumero()
+                + (pedido.getSystockId() == null ? "" : " (Systock " + pedido.getSystockId() + ")")
                 + (item.getObservacao() == null || item.getObservacao().isBlank() ? "" : " - " + item.getObservacao().trim());
         return texto.length() <= 200 ? texto : texto.substring(0, 200);
     }
