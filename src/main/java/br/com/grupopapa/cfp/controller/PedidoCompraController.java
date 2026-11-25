@@ -73,8 +73,18 @@ public class PedidoCompraController {
     @GetMapping("/configuracao")
     @Operation(summary = "Parametros que a tela precisa conhecer")
     public Map<String, Object> configuracao() {
-        return Map.of("gerarSugestaoHabilitada", sugestaoService.isHabilitada());
+        return Map.of("gerarSugestaoHabilitada", sugestaoService.isHabilitada(),
+                "filialPadrao", filialPadrao == null ? "" : filialPadrao.trim(),
+                "prazoEntregaDias", Math.max(0, prazoEntregaDias));
     }
+
+    /** Filial que ja vem marcada no pedido novo (quando o fornecedor nao tem filial fixa). */
+    @org.springframework.beans.factory.annotation.Value("${app.erp.compra.filial-padrao:6}")
+    private String filialPadrao;
+
+    /** Previsao de entrega sugerida no pedido novo: hoje + N dias. */
+    @org.springframework.beans.factory.annotation.Value("${app.erp.compra.prazo-entrega-dias:15}")
+    private int prazoEntregaDias;
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
