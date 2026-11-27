@@ -72,6 +72,13 @@ public class AdminPedidoCompraController {
         return service.resposta(service.buscar(id, logado));
     }
 
+    @org.springframework.web.bind.annotation.DeleteMapping("/{id}")
+    @Operation(summary = "Exclui o pedido de vez (so se ainda nao gerou sugestao no WinThor)")
+    public org.springframework.http.ResponseEntity<Void> excluir(@PathVariable Long id) {
+        service.excluir(id, UsuarioLogado.obter());
+        return org.springframework.http.ResponseEntity.noContent().build();
+    }
+
     @PostMapping("/{id}/gerar-sugestao")
     @Operation(summary = "Gera (ou tenta de novo) a sugestao no WinThor de um pedido aprovado")
     public PedidoCompraResponse gerarSugestao(@PathVariable Long id) {

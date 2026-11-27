@@ -329,6 +329,27 @@ public class PedidoCompraService {
         return pedido;
     }
 
+    /**
+     * Exclui o pedido de vez (itens e historico). So admin e so enquanto nao houver sugestao
+     * gerada no WinThor - depois disso o pedido existe na 220 e precisa ficar registrado aqui.
+     */
+    @Transactional
+    public void excluir(Long id, UsuarioAutenticado logado) {
+        if (!logado.isAdmin()) {
+            throw new NegocioException("Somente a equipe do Grupo Papa pode excluir pedidos.");
+        }
+        PedidoCompra pedido = buscar(id, logado);
+        if (pedido.isSugestaoGerada() || pedido.getNumSugestaoErp() != null) {
+            throw new NegocioException("O pedido " + pedido.getNumero() + " ja gerou a sugestao "
+                    + pedido.getNumSugestaoErp() + " no WinThor e nao pode ser excluido.");
+        }
+        log.warn("Pedido de compra {} (id {}, fornecedor {}, status {}) EXCLUIDO por {} ({}).",
+                pedido.getNumero(), id, pedido.getFornecedor().getRazaoSocial(), pedido.getStatus(),
+                logado.getUsername(), logado.getId());
+        historicoRepository.deleteAll(historicoRepository.listar(id));
+        repository.delete(pedido);
+    }
+
     // ================================================================ fiscal
 
     /**
@@ -508,7 +529,7 @@ public class PedidoCompraService {
         return exigirDiretoria;
     }
 
-    @org.springframework.beans.factory.annotation.Value("${app.erp.compra.exigir-diretoria:true}")
+    @org.springframework.beans.factory.annotation.Value("${app.erp.compra.exigir-diretoria:false}")
     private boolean exigirDiretoria;
 
     /** Conferencias para aprovar (ou mandar para a diretoria): filial, fornecedor e itens no WinThor. */
