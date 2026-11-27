@@ -163,6 +163,9 @@ public class ProdutoService {
         if (produto.getStatus() == StatusProduto.APROVADO) {
             throw new NegocioException("Produto ja aprovado.");
         }
+        if (fotoRepository.countByProdutoId(produto.getId()) == 0) {
+            throw new NegocioException("Inclua pelo menos uma foto do produto antes de enviar para analise.");
+        }
         produto.setStatus(StatusProduto.ENVIADO);
         produto.setDataEnvio(OffsetDateTime.now());
         Produto salvo = produtoRepository.save(produto);

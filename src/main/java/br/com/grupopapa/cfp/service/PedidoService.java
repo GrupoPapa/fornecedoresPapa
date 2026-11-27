@@ -158,6 +158,16 @@ public class PedidoService {
             throw new NegocioException("Adicione ao menos um produto antes de enviar o pedido.");
         }
 
+        // foto e obrigatoria em todo produto que vai para analise
+        List<String> semFoto = itens.stream()
+                .filter(p -> p.getStatus() != StatusProduto.APROVADO)
+                .filter(p -> fotoRepository.countByProdutoId(p.getId()) == 0)
+                .map(Produto::getDescricao).toList();
+        if (!semFoto.isEmpty()) {
+            throw new NegocioException("Inclua pelo menos uma foto em cada produto antes de enviar. Sem foto: "
+                    + String.join(", ", semFoto) + ".");
+        }
+
         Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
         OffsetDateTime agora = OffsetDateTime.now();
 

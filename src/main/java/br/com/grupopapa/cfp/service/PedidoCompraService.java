@@ -206,7 +206,7 @@ public class PedidoCompraService {
 
         Set<Long> codigosWinthor = new HashSet<>();
         if (fornecedor.getCodFornecedorErp() == null) {
-            aviso = "Fornecedor sem codigo no WinThor: so os produtos novos do portal aparecem. "
+            aviso = "Fornecedor sem codigo no WinThor: ainda nao ha produtos para o pedido de compra. "
                     + "Peca a equipe para importar o cadastro do fornecedor.";
         } else {
             try {
@@ -222,10 +222,8 @@ public class PedidoCompraService {
             }
         }
 
-        for (Produto p : produtoNovoRepository.semCodigoWinthor(fornecedor.getId())) {
-            produtos.add(new CatalogoCompraResponse.Produto("PORTAL", null, p.getId(), p.getStatus(),
-                    p.getCodigo(), p.getDescricao(), null, null, null, p.getCodBarraProduto()));
-        }
+        // Produto cadastrado no portal so entra no pedido depois de aprovado e gravado no
+        // WinThor - ai ele ja aparece na lista acima, com o CODPROD. Produto em analise nao aparece.
         return new CatalogoCompraResponse(produtos, aviso, fornecedor.getCodFilialCompra());
     }
 
@@ -638,13 +636,18 @@ public class PedidoCompraService {
                 Produto produto = produtoRepository.findById(req.produtoId())
                         .filter(pr -> Objects.equals(pr.getFornecedor().getId(), fornecedor.getId()))
                         .orElseThrow(() -> new NegocioException("Item " + numeroLinha + ": produto novo nao encontrado."));
+                // produto do portal so pode ser pedido depois de aprovado e gravado no WinThor
+                Long codProdErp = produtoErpRepository.findById(produto.getId())
+                        .map(ProdutoErp::getCodProdErp).orElse(null);
+                if (codProdErp == null) {
+                    throw new NegocioException("Item " + numeroLinha + ": o produto " + produto.getDescricao()
+                            + " ainda esta em analise no cadastro. Ele so pode entrar no pedido de compra depois "
+                            + "de aprovado e gravado no WinThor.");
+                }
                 item.setProduto(produto);
                 item.setDescricao(cortar(produto.getDescricao(), 150));
                 item.setCodigoFabrica(cortar(produto.getCodigo(), 30));
-                // se ja foi gravado no WinThor, passa a usar o CODPROD
-                produtoErpRepository.findById(produto.getId())
-                        .map(ProdutoErp::getCodProdErp)
-                        .ifPresent(item::setCodProdErp);
+                item.setCodProdErp(codProdErp);
             } else {
                 throw new NegocioException("Item " + linha + ": selecione o produto.");
             }
