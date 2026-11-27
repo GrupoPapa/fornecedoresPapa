@@ -55,6 +55,11 @@ public class UsuarioService {
         u.setNome(request.nome().trim());
         u.setPerfil(request.perfil());
         u.setAtivo(request.ativo() == null || request.ativo());
+        if (request.perfil() != Perfil.ADMIN) {
+            u.setAprovaDiretoria(false);
+        } else if (request.aprovaDiretoria() != null) {
+            u.setAprovaDiretoria(request.aprovaDiretoria());
+        }
         u.setTrocarSenha(false); // a senha e definida pela empresa; o fornecedor nao troca
         vincularFornecedor(u, request);
 
@@ -76,6 +81,11 @@ public class UsuarioService {
         u.setNome(request.nome().trim());
         u.setPerfil(request.perfil());
         u.setAtivo(request.ativo() == null || request.ativo());
+        if (request.perfil() != Perfil.ADMIN) {
+            u.setAprovaDiretoria(false);
+        } else if (request.aprovaDiretoria() != null) {
+            u.setAprovaDiretoria(request.aprovaDiretoria());
+        }
         vincularFornecedor(u, request);
         return repository.save(u);
     }

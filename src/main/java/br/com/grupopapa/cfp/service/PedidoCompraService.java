@@ -396,6 +396,9 @@ public class PedidoCompraService {
         if (!pedido.getStatus().isEmAnalise()) {
             throw new NegocioException("Somente pedidos em analise podem ser revisados ou reprovados.");
         }
+        if (pedido.getStatus() == StatusPedidoCompra.AGUARDANDO_DIRETORIA && !isDiretoria(logado)) {
+            throw new NegocioException("O pedido esta com a diretoria: so ela pode devolve-lo ou reprova-lo.");
+        }
         if (parecer == null || parecer.isBlank()) {
             throw new NegocioException(exigirMotivo);
         }
@@ -416,9 +419,100 @@ public class PedidoCompraService {
         if (pedido.getStatus() == StatusPedidoCompra.DIVERGENCIA) {
             throw new NegocioException("Resolva a divergencia de cadastro antes de aprovar.");
         }
-        if (pedido.getStatus() != StatusPedidoCompra.EM_ANALISE) {
+        boolean diretoria = isDiretoria(logado);
+        if (pedido.getStatus() == StatusPedidoCompra.AGUARDANDO_DIRETORIA) {
+            if (!diretoria) {
+                throw new NegocioException("O pedido esta aguardando a diretoria: so ela pode aprovar.");
+            }
+        } else if (pedido.getStatus() != StatusPedidoCompra.EM_ANALISE) {
             throw new NegocioException("Somente pedidos em analise podem ser aprovados.");
+        } else if (exigirDiretoria && !diretoria) {
+            throw new NegocioException("A aprovacao e feita pela diretoria: use \"Enviar para a diretoria\".");
         }
+        validarParaAprovacao(pedido, request);
+
+        Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
+        String parecer = request == null ? null : request.parecer();
+        boolean vinhaDaDiretoria = pedido.getStatus() == StatusPedidoCompra.AGUARDANDO_DIRETORIA;
+        pedido.setStatus(StatusPedidoCompra.APROVADO);
+        if (parecer != null && !parecer.isBlank()) {
+            pedido.setParecer(cortar(parecer.trim(), 500));
+        } else if (!vinhaDaDiretoria) {
+            pedido.setParecer(null);
+        }
+        pedido.setDataAnalise(OffsetDateTime.now());
+        pedido.setUsuarioAnalise(usuario);
+        pedido.setStatusIntegracao("PENDENTE");
+        pedido.setMensagemErro(null);
+        repository.save(pedido);
+        registrar(id, usuario, "APROVACAO", (diretoria ? "Aprovado pela diretoria" : "Aprovado pelo fiscal")
+                + " (filial " + pedido.getCodFilial() + ")"
+                + (parecer == null || parecer.isBlank() ? "." : ": " + parecer.trim()));
+        return pedido;
+    }
+
+    /** Analista conclui a analise e manda o pedido para a diretoria aprovar. */
+    @Transactional
+    public PedidoCompra enviarParaDiretoria(Long id, AnaliseCompraRequest request, UsuarioAutenticado logado) {
+        PedidoCompra pedido = buscar(id, logado);
+        if (pedido.getStatus() == StatusPedidoCompra.DIVERGENCIA) {
+            throw new NegocioException("Resolva a divergencia de cadastro antes de enviar para a diretoria.");
+        }
+        if (pedido.getStatus() != StatusPedidoCompra.EM_ANALISE) {
+            throw new NegocioException("Somente pedidos em analise podem ser enviados para a diretoria.");
+        }
+        validarParaAprovacao(pedido, request);
+        Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
+        String parecer = request == null ? null : request.parecer();
+        pedido.setStatus(StatusPedidoCompra.AGUARDANDO_DIRETORIA);
+        pedido.setParecer(parecer == null || parecer.isBlank() ? null : cortar(parecer.trim(), 500));
+        pedido.setDataAnalise(OffsetDateTime.now());
+        pedido.setUsuarioAnalise(usuario);
+        repository.save(pedido);
+        registrar(id, usuario, "ENVIO_DIRETORIA", "Enviado para a diretoria aprovar (filial " + pedido.getCodFilial() + ")"
+                + (pedido.getParecer() == null ? "." : ": " + pedido.getParecer()));
+        return pedido;
+    }
+
+    /** Diretoria devolve o pedido para o analista (volta para EM_ANALISE) com o motivo. */
+    @Transactional
+    public PedidoCompra devolverParaAnalise(Long id, String motivo, UsuarioAutenticado logado) {
+        PedidoCompra pedido = buscar(id, logado);
+        if (pedido.getStatus() != StatusPedidoCompra.AGUARDANDO_DIRETORIA) {
+            throw new NegocioException("Somente pedidos aguardando a diretoria podem ser devolvidos para analise.");
+        }
+        if (!isDiretoria(logado)) {
+            throw new NegocioException("Somente a diretoria pode devolver o pedido para analise.");
+        }
+        if (motivo == null || motivo.isBlank()) {
+            throw new NegocioException("Informe o que o analista precisa rever.");
+        }
+        Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
+        pedido.setStatus(StatusPedidoCompra.EM_ANALISE);
+        pedido.setParecer(cortar(motivo.trim(), 500));
+        pedido.setDataAnalise(null);
+        pedido.setUsuarioAnalise(null);
+        repository.save(pedido);
+        registrar(id, usuario, "DEVOLUCAO_DIRETORIA", "Devolvido pela diretoria para analise: " + motivo.trim());
+        return pedido;
+    }
+
+    /** Usuario com a marca de diretoria (aprova pedidos de compra). */
+    public boolean isDiretoria(UsuarioAutenticado logado) {
+        return logado != null && logado.isAdmin()
+                && usuarioRepository.findById(logado.getId()).map(Usuario::isAprovaDiretoria).orElse(false);
+    }
+
+    /** true = analista nao aprova direto: envia para a diretoria. */
+    public boolean isExigirDiretoria() {
+        return exigirDiretoria;
+    }
+
+    @org.springframework.beans.factory.annotation.Value("${app.erp.compra.exigir-diretoria:true}")
+    private boolean exigirDiretoria;
+
+    /** Conferencias para aprovar (ou mandar para a diretoria): filial, fornecedor e itens no WinThor. */
+    private void validarParaAprovacao(PedidoCompra pedido, AnaliseCompraRequest request) {
         if (request != null && request.codFilial() != null && !request.codFilial().isBlank()) {
             pedido.setCodFilial(validarFilial(request.codFilial().trim()));
         }
@@ -457,19 +551,6 @@ public class PedidoCompraService {
                 log.debug("Sem ultimo preco para {}: {}", item.getCodProdErp(), e.getMessage());
             }
         }
-
-        Usuario usuario = usuarioRepository.getReferenceById(logado.getId());
-        String parecer = request == null ? null : request.parecer();
-        pedido.setStatus(StatusPedidoCompra.APROVADO);
-        pedido.setParecer(parecer == null || parecer.isBlank() ? null : cortar(parecer.trim(), 500));
-        pedido.setDataAnalise(OffsetDateTime.now());
-        pedido.setUsuarioAnalise(usuario);
-        pedido.setStatusIntegracao("PENDENTE");
-        pedido.setMensagemErro(null);
-        repository.save(pedido);
-        registrar(id, usuario, "APROVACAO", "Aprovado pelo fiscal (filial " + pedido.getCodFilial() + ")"
-                + (pedido.getParecer() == null ? "." : ": " + pedido.getParecer()));
-        return pedido;
     }
 
     /** Volta um pedido aprovado para analise, desde que a sugestao ainda nao tenha sido gerada. */
@@ -762,6 +843,7 @@ public class PedidoCompraService {
             case RASCUNHO -> "em digitacao";
             case DIVERGENCIA -> "com divergencia de cadastro em analise";
             case EM_ANALISE -> "em analise pelo fiscal";
+            case AGUARDANDO_DIRETORIA -> "aguardando aprovacao da diretoria";
             case REVISAO -> "devolvido para revisao";
             case REPROVADO -> "reprovado";
             case APROVADO -> "aprovado";

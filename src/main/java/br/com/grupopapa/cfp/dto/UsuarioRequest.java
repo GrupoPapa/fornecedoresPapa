@@ -14,5 +14,7 @@ public record UsuarioRequest(
         @Size(min = 8, max = 60, message = "A senha deve ter no minimo 8 caracteres") String senhaProvisoria,
         Boolean ativo,
         /** Envia os dados de acesso para o e-mail informado (padrao: true). */
-        Boolean enviarEmail) {
+        Boolean enviarEmail,
+        /** So para ADMIN: aprova os pedidos de compra como diretoria. Nulo = nao altera. */
+        Boolean aprovaDiretoria) {
 }

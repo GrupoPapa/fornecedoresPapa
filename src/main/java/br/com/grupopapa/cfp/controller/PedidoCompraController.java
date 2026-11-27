@@ -75,7 +75,8 @@ public class PedidoCompraController {
     public Map<String, Object> configuracao() {
         return Map.of("gerarSugestaoHabilitada", sugestaoService.isHabilitada(),
                 "filialPadrao", filialPadrao == null ? "" : filialPadrao.trim(),
-                "prazoEntregaDias", Math.max(0, prazoEntregaDias));
+                "prazoEntregaDias", Math.max(0, prazoEntregaDias),
+                "exigirDiretoria", service.isExigirDiretoria());
     }
 
     /** Filial que ja vem marcada no pedido novo (quando o fornecedor nao tem filial fixa). */

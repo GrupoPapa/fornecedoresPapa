@@ -54,6 +54,24 @@ public class AdminPedidoCompraController {
         return service.resposta(service.buscar(id, logado));
     }
 
+    @PostMapping("/{id}/enviar-diretoria")
+    @Operation(summary = "Analista conclui a analise e envia o pedido para a diretoria aprovar")
+    public PedidoCompraResponse enviarDiretoria(@PathVariable Long id,
+                                                @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
+        UsuarioAutenticado logado = UsuarioLogado.obter();
+        service.enviarParaDiretoria(id, request, logado);
+        return service.resposta(service.buscar(id, logado));
+    }
+
+    @PostMapping("/{id}/devolver-analise")
+    @Operation(summary = "Diretoria devolve o pedido para o analista, com o motivo")
+    public PedidoCompraResponse devolverAnalise(@PathVariable Long id,
+                                                @RequestBody(required = false) @Valid AnaliseCompraRequest request) {
+        UsuarioAutenticado logado = UsuarioLogado.obter();
+        service.devolverParaAnalise(id, request == null ? null : request.parecer(), logado);
+        return service.resposta(service.buscar(id, logado));
+    }
+
     @PostMapping("/{id}/gerar-sugestao")
     @Operation(summary = "Gera (ou tenta de novo) a sugestao no WinThor de um pedido aprovado")
     public PedidoCompraResponse gerarSugestao(@PathVariable Long id) {

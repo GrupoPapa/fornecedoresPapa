@@ -10,7 +10,7 @@ public record UsuarioResponse(
         Long id, String nome, String email, Perfil perfil,
         Long fornecedorId, String fornecedorNome, TipoFornecedor fornecedorTipo,
         Boolean ativo, Boolean trocarSenha, OffsetDateTime ultimoAcesso,
-        Boolean farHabilitado, Long fornecedorCodErp, String fornecedorCnpj) {
+        Boolean farHabilitado, Long fornecedorCodErp, String fornecedorCnpj, Boolean aprovaDiretoria) {
 
     public static UsuarioResponse de(Usuario u) {
         return new UsuarioResponse(
@@ -21,6 +21,7 @@ public record UsuarioResponse(
                 u.getAtivo(), u.getTrocarSenha(), u.getDataUltimoAcesso(),
                 u.isAdmin() || (u.getFornecedor() != null && u.getFornecedor().isFarHabilitado()),
                 u.getFornecedor() != null ? u.getFornecedor().getCodFornecedorErp() : null,
-                u.getFornecedor() != null ? u.getFornecedor().getCnpj() : null);
+                u.getFornecedor() != null ? u.getFornecedor().getCnpj() : null,
+                u.isAdmin() && u.isAprovaDiretoria());
     }
 }

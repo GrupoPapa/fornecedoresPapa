@@ -33,6 +33,10 @@ public class Usuario {
     @Column(name = "ATIVO", nullable = false)
     private Boolean ativo = Boolean.TRUE;
 
+    /** Diretoria: aprova os pedidos de compra que os analistas enviam (script 21). */
+    @Column(name = "APROVA_DIRETORIA", nullable = false)
+    private Boolean aprovaDiretoria = Boolean.FALSE;
+
     @Column(name = "TROCAR_SENHA", nullable = false)
     private Boolean trocarSenha = Boolean.TRUE;
 
@@ -71,6 +75,8 @@ public class Usuario {
     public void setPerfil(Perfil perfil) { this.perfil = perfil; }
     public Boolean getAtivo() { return ativo; }
     public void setAtivo(Boolean ativo) { this.ativo = ativo; }
+    public boolean isAprovaDiretoria() { return Boolean.TRUE.equals(aprovaDiretoria); }
+    public void setAprovaDiretoria(Boolean aprovaDiretoria) { this.aprovaDiretoria = Boolean.TRUE.equals(aprovaDiretoria); }
     public Boolean getTrocarSenha() { return trocarSenha; }
     public void setTrocarSenha(Boolean trocarSenha) { this.trocarSenha = trocarSenha; }
     public OffsetDateTime getDataUltimoAcesso() { return dataUltimoAcesso; }

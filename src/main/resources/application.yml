@@ -98,6 +98,8 @@ app:
       # filial que ja vem marcada no pedido novo e prazo da previsao de entrega (hoje + N dias)
       filial-padrao: ${CFP_ERP_COMPRA_FILIAL_PADRAO:6}
       prazo-entrega-dias: ${CFP_ERP_COMPRA_PRAZO_DIAS:15}
+      # true = analista nao aprova direto: envia para a diretoria (usuario com APROVA_DIRETORIA)
+      exigir-diretoria: ${CFP_COMPRA_EXIGIR_DIRETORIA:true}
       tabela-sugestao: ${CFP_ERP_TABELA_SUGESTAO:PCSUGESTAOCOMPRAC}
       tabela-sugestao-item: ${CFP_ERP_TABELA_SUGESTAO_ITEM:PCSUGESTAOCOMPRAI}
       # sequence do NUMSUGESTAO. Em branco = trava a tabela e usa MAX(NUMSUGESTAO) + 1.

@@ -2,7 +2,7 @@ package br.com.grupopapa.cfp.domain;
 
 /**
  * Etapas do pedido de compra (ver FLUXO PEDIDOS):
- * RASCUNHO -> (envio) -> DIVERGENCIA ou EM_ANALISE -> APROVADO / REPROVADO.
+ * RASCUNHO -> (envio) -> DIVERGENCIA ou EM_ANALISE -> AGUARDANDO_DIRETORIA -> APROVADO / REPROVADO.
  */
 public enum StatusPedidoCompra {
     /** Fornecedor ainda esta digitando. */
@@ -11,6 +11,8 @@ public enum StatusPedidoCompra {
     DIVERGENCIA,
     /** Fiscal analisando o comparativo com os ultimos precos. */
     EM_ANALISE,
+    /** Analisado e enviado para a diretoria aprovar (script 21). */
+    AGUARDANDO_DIRETORIA,
     /** Devolvido ao fornecedor para revisao: ele corrige e reenvia. */
     REVISAO,
     /** Reprovado pelo fiscal - encerrado, nao volta para o fornecedor. */
@@ -25,6 +27,6 @@ public enum StatusPedidoCompra {
     }
 
     public boolean isEmAnalise() {
-        return this == DIVERGENCIA || this == EM_ANALISE;
+        return this == DIVERGENCIA || this == EM_ANALISE || this == AGUARDANDO_DIRETORIA;
     }
 }
